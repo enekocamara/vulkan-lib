@@ -1,0 +1,90 @@
+#pragma once
+#include <concepts>
+#include <stdexcept>
+#include <variant>
+
+
+
+#define ER(code) \
+        {\
+            auto _temp_value = code;\
+            if (!_temp_value.is_ok())\
+                return {_temp_value ## __LINE__.get_err()};
+        }\
+
+#define ERA(asing, code) \
+        {\
+            __LINE__;
+            auto _temp_value##__LINE__= code;\
+            if (!_temp_value.is_ok())\
+                return {_temp_value ##$__LINE__.get_err()};\
+        }\
+        asing = _temp_value ##$__LINE__.get_ok();
+
+/// empty struct-type when want to return no value in
+/// rusult ok. ex: Result<Empty,Error>
+struct EmptyOk {};
+
+/// empty struct-type when want to return no value in
+/// result error. ex: Result<Empty,EmptyErr>
+struct EmptyErr {};
+
+enum Errors { other };
+
+template <typename T>
+concept NotEmptyErr = requires(T value_ok) { !std::same_as<T, EmptyErr>; };
+template <typename E>
+concept NotEmptyOk = requires(E value_ok) { !std::same_as<E, EmptyOk>; };
+
+/// main error handling type for my project
+/// it will have two types, one for ok and the other
+/// for error.
+template <typename T, typename E> struct Result {
+  /// it will move the value you pass as argument
+  Result(T &&value_ok) noexcept : value(std::forward<T>(value_ok)) {}
+  /// it will move the value you pass as argument
+  Result(E &&value_err) noexcept : value(std::forward<E>(value_err)) {}
+  bool is_ok() noexcept {
+    if (std::holds_alternative<T>(value))
+      return true;
+    return false;
+  }
+  /// if its err it throws runtime error with message
+  /// else it moves the value(return &&value)
+  [[nodiscard]] T &&map_err_throw(const char *message) {
+    if (std::holds_alternative<E>(value))
+      throw std::runtime_error(message);
+    return std::move(std::get<T>(value));
+  }
+  template<typename NE>
+  [[nodiscard]] Result<T, NE> &&map_err(NE &&newError) {
+    if (std::holds_alternative<E>(value))
+      return newError;
+    return std::move(std::get<T>(value));
+  }
+  /// if ok moves the value(return  &&value)
+  /// else returns nullptr
+  /// the internal value is set to nullptr if ok
+  [[nodiscard]] T &&get_ok() { return std::move(std::get<T>(value)); }
+  [[nodiscard]] E &&get_err() { return std::move(std::get<E>(value)); }
+private:
+  std::variant<T, E> value;
+};
+
+/// returns a Ok Result with specified values
+template <NotEmptyErr T = EmptyOk, NotEmptyOk E = EmptyErr>
+inline Result<T, E> ok(T &&value = T{}) {
+  return Result<T, E>(std::forward<T>(value));
+}
+
+template <NotEmptyErr T = EmptyOk, NotEmptyOk E = EmptyErr>
+inline auto ok_auto(T &&value = T{}) {
+  return Result<T, E>(std::forward<T>(value));
+}
+
+
+/// returns a Err Result with specified error
+template <typename T = EmptyOk, typename E = EmptyErr>
+inline Result<T, E> err(E &&value = E{}) {
+  return Result<T, E>(std::forward<E>(value));
+}
