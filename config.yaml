@@ -1,7 +1,7 @@
 project: vulkan-lib
 current_target: vulkan-lib
 targets:
-  vulkan-lib: Executable
+  vulkan-lib: StaticLibrary
 modules:
   glfw:
     git_url: https://github.com/glfw/glfw

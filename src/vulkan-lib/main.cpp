@@ -8,9 +8,9 @@ import vulkan_lib.app;
 
 int main()
 {
-    std::unique_ptr<App> app;
+    std::unique_ptr<vkl::App> app;
     try {
-        app = std::make_unique<App>(1920, 1080);
+        app = std::make_unique<vkl::App>(1920, 1080);
     }catch (std::runtime_error &e){
         std::cerr << "CRITICAL ERROR, " << e.what() << '\n';
         return 1;

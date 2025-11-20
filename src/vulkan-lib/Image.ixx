@@ -6,8 +6,8 @@ export module vulkan_lib.image;
 
 import "stb_image.h";
 
-namespace vkImage {
-    export struct TextureInputBundle{
+export namespace vkl {
+    export struct ImageInputBundle{
         vk::Device device;
         vk::PhysicalDevice physicalDevice;
         const char * filename;
@@ -17,7 +17,7 @@ namespace vkImage {
         vk::DescriptorPool descriptorPool;
     };
     
-    export class Texture{
+    export class Image{
         
         private:
             int width,height, channels;
