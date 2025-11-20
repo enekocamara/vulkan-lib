@@ -7,7 +7,8 @@ import vulkan_lib.engine;
 import vulkan_lib.scene;
 import vulkan_lib.result;
 
-export class App {
+namespace vkl {
+    export class App {
     public:
         App(int width, int height);
         ~App();
@@ -20,11 +21,12 @@ export class App {
         Scene scene;
         GLFWwindow* window;
 
-        double lastTime,currentTime;
+        double lastTime, currentTime;
         int numFrames;
         float frameTime;
 
         [[nodiscard]] Result<EmptyOk, Error> build_glfw_window(int width, int height)noexcept;
         void calculateFrameRate();
 
-};
+    };
+}
