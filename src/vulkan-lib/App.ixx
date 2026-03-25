@@ -3,10 +3,8 @@ export module vulkan_lib.app;
 import <GLFW/glfw3.h>;
 import <expected>;
 import <memory>;
-import vulkan_lib.engine;
 import vulkan_lib.scene;
-import vulkan_lib.result;
-
+import debug_lib.result;
 namespace vkl {
     export class App {
     public:
@@ -14,10 +12,10 @@ namespace vkl {
         ~App();
         App(const App& ref) = delete;
         App& operator=(const App& ref) = delete;
-        [[nodiscard]] Result<EmptyOk> run();
+        [[nodiscard]] db::Result<db::EmptyOk> run();
 
     private:
-        std::unique_ptr<Engine> graphicsEngine;
+//        std::unique_ptr<Engine> graphicsEngine;
         Scene scene;
         GLFWwindow* window;
 
@@ -25,7 +23,7 @@ namespace vkl {
         int numFrames;
         float frameTime;
 
-        [[nodiscard]] Result<EmptyOk, Error> build_glfw_window(int width, int height)noexcept;
+        [[nodiscard]] db::Result<db::EmptyOk> build_glfw_window(int width, int height)noexcept;
         void calculateFrameRate();
 
     };

@@ -2,15 +2,15 @@ module;
 
 #include "vulkan-lib/Config.h"
 
-export module vulkan_lib.swapchainFrame;
+export module vulkan_lib.SwapchainFrame;
 
 import vulkan_lib.memory;
 import <glm/glm.hpp>;
 import <expected>;
-import vulkan_lib.result;
-import vulkan_lib.logging;
+import debug_lib.result;
+import debug_lib.Logger;
 
-export namespace vkInit {
+namespace vkl {
 
     struct UBO{
         glm::mat4 view;
@@ -18,36 +18,58 @@ export namespace vkInit {
         glm::mat4 viewProjection;
     };
 
-    export struct SwapchainFrame{
-        vk::Image image;
-        vk::ImageView view;
-        vk::Framebuffer framebuffer;
-        vk::CommandBuffer commandbuffer;
+    export class SwapchainFrame {
+    public:
+        SwapchainFrame() = delete;
+        SwapchainFrame(vk::Device device, vk::PhysicalDevice physical_device, vk::Image image, vk::Format format, vk::CommandBuffer command_buffer);
+
+
+        auto get_command_buffer() -> vk::CommandBuffer { return m_command_buffer; }
+
+        vk::Semaphore m_image_available;
+        vk::Semaphore m_render_finished;
+        vk::Fence m_in_flight_fence;
+
+        vk::Image m_image;
+        vk::ImageView m_view;
+        vk::Framebuffer m_framebuffer;
+        vk::CommandBuffer m_command_buffer;
+
+        vk::DescriptorBufferInfo m_uniform_buffer_descriptor;
+        vk::DescriptorBufferInfo m_model_buffer_descriptor;
+        std::vector<vk::DescriptorSet> m_descriptor_sets;
+    private:
+
+
+        //sync
+    };
+/*
+    export struct SwapchainFrame2{
         //sync
         vk::Semaphore imageAvailable, renderFinished;
         vk::Fence inFlightFence;
 
         vk::DescriptorBufferInfo uniformBufferDescriptor;
         vk::DescriptorBufferInfo modelBufferDescriptor;
-        vk::DescriptorSet descriptorSet;
+        std::vector<vk::DescriptorSet> descriptor_sets;
 
         UBO cameraData;
-        vkUtil::Buffer cameraDataBuffer;
+        vkl::Buffer cameraDataBuffer;
         void *cameraDataWriteLocation;
         std::vector<glm::mat4>modelTransforms;
-        vkUtil::Buffer modelBuffer;
+        vkl::Buffer modelBuffer;
         void *modelBufferWriteLocation;
 
         std::expected<EmptyOk, EmptyErr> make_descriptor_resources(vk::Device device, vk::PhysicalDevice physicalDevice){
             //camera
 
-            vkUtil::BufferInput input = {};
+            vkl::BufferInput input = {};
             input.device = device;
             input.physicalDevice = physicalDevice;
             input.properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
             input.size = sizeof(UBO);
             input.usage = vk::BufferUsageFlagBits::eUniformBuffer;
-            auto camBuffRes = vkUtil::createBuffer(input);
+            auto camBuffRes = vkl::create_buffer(input);
             if (!camBuffRes) {
                 return std::unexpected(EmptyErr{});
             }
@@ -55,7 +77,7 @@ export namespace vkInit {
 
             vk::ResultValue<void *> result = device.mapMemory(cameraDataBuffer.bufferMemory, 0, sizeof(UBO));
             if (result.result != vk::Result::eSuccess){
-                errprintDebug("Failed to map memory");
+                //errprintDebug("Failed to map memory");
                 return std::unexpected(EmptyErr{});
             }
             
@@ -68,14 +90,14 @@ export namespace vkInit {
 
             input.size = 1024 * sizeof(glm::mat4);
             input.usage = vk::BufferUsageFlagBits::eStorageBuffer;
-            auto modelBuffRes = vkUtil::createBuffer(input);
+            auto modelBuffRes = vkl::create_buffer(input);
             if (!modelBuffRes) {
                 return std::unexpected(EmptyErr{});
             }
             modelBuffer = modelBuffRes.value();
             vk::ResultValue<void *> resultModel = device.mapMemory(modelBuffer.bufferMemory, 0, sizeof(UBO));
             if (resultModel.result != vk::Result::eSuccess){
-                errprintDebug("Failed to map memory");
+               // errprintDebug("Failed to map memory");
                 return std::unexpected(EmptyErr{});
             }
             modelBufferWriteLocation = resultModel.value;
@@ -92,7 +114,7 @@ export namespace vkInit {
         }
         void write_descriptor_set(vk::Device device){
             vk::WriteDescriptorSet writeInfo = {};
-            writeInfo.dstSet = descriptorSet;
+            writeInfo.dstSet = descriptor_sets[0];
             writeInfo.dstBinding = 0;
             writeInfo.descriptorCount = 1;
             writeInfo.descriptorType = vk::DescriptorType::eUniformBuffer;
@@ -100,7 +122,7 @@ export namespace vkInit {
             device.updateDescriptorSets(writeInfo, nullptr);
             
             vk::WriteDescriptorSet writeInfo2 = {};
-            writeInfo2.dstSet = descriptorSet;
+            writeInfo2.dstSet = descriptor_sets[0];
             writeInfo2.dstBinding = 1;
             writeInfo2.descriptorCount = 1;
             writeInfo2.descriptorType = vk::DescriptorType::eStorageBuffer;
@@ -108,5 +130,5 @@ export namespace vkInit {
             device.updateDescriptorSets(writeInfo2, nullptr);
 
         }
-    };
+    };*/
 }

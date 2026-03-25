@@ -1,0 +1,31 @@
+export module vulkan_lib.result;
+
+import <string>;
+import <source_location>;
+import <expected>;
+import <memory>;
+import <optional>;
+
+
+export struct EmptyOk {};
+
+export struct EmptyErr {};
+
+export struct Error {
+	std::string message;
+	uint32_t code;
+	std::source_location where = std::source_location::current();
+	std::optional<std::unique_ptr<Error>> next;
+
+	std::string to_string() {
+		return "";
+	}
+};
+
+export template<typename Ok, typename Err = EmptyErr>
+using Result = std::expected<Ok, Err>;
+
+export [[nodiscard]] auto
+make_error(std::string message, std::optional<Error> error_source = std::nullopt, uint32_t code = 0, std::source_location location = std::source_location::current()) -> Error;
+export [[nodiscard]] auto
+error(std::string message, std::optional<Error> error_source = std::nullopt, uint32_t code = 0, std::source_location location = std::source_location::current()) -> std::unexpected<Error>;
