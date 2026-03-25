@@ -4,15 +4,15 @@ module;
 
 export module vulkan_lib.memory;
 
-import vulkan_lib.result;
+import debug_lib.result;
 import <expected>;
 import <iostream>;
 
-export namespace vkUtil{
+export namespace vkl{
 
     export struct BufferInput{
         vk::Device device;
-        vk::PhysicalDevice physicalDevice;
+        vk::PhysicalDevice physical_device;
         size_t size;
         vk::BufferUsageFlags usage;
         vk::MemoryPropertyFlags properties;
@@ -50,7 +50,8 @@ export namespace vkUtil{
         vk::BufferCopy region;
     };
 
-    export [[nodiscard]] inline std::expected<uint32_t, EmptyErr > findMemoryTypeIndex(vk::PhysicalDevice physicalDevice,  uint32_t supportedMemoryIndices, vk::MemoryPropertyFlags requestedProperties)noexcept{
+    export [[nodiscard]] auto
+    findMemoryTypeIndex(vk::PhysicalDevice physicalDevice,  uint32_t supportedMemoryIndices, vk::MemoryPropertyFlags requestedProperties)noexcept -> db::Result<uint32_t>{
         vk::PhysicalDeviceMemoryProperties memoryProperties;
         physicalDevice.getMemoryProperties(&memoryProperties);
 
@@ -60,43 +61,43 @@ export namespace vkUtil{
             if (supported && sufficient)
                 return i;
         }
-        return std::unexpected(EmptyErr{});
+        return db::error("Failed to get memory type index");
     }
     
     export [[nodiscard]] inline auto
-    allocateBufferMemory( Buffer&buffer, const BufferInput& input) noexcept -> std::expected<EmptyOk, EmptyErr> {
+    allocate_buffer_memory( Buffer&buffer, const BufferInput& input) noexcept -> db::Result<db::EmptyOk> {
         assert(buffer.state == Buffer::State::BufferCreated);
 
         vk::MemoryRequirements memoryRequirements;
         input.device.getBufferMemoryRequirements(buffer.buffer, &memoryRequirements);
         vk::MemoryAllocateInfo allocInfo = {};
         allocInfo.allocationSize = memoryRequirements.size;
-        auto memoryTypeIndexRes = findMemoryTypeIndex(input.physicalDevice, memoryRequirements.memoryTypeBits,
+        auto memory_type_index_res = findMemoryTypeIndex(input.physical_device, memoryRequirements.memoryTypeBits,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-        if (!memoryTypeIndexRes)
-            return std::unexpected(EmptyErr{});
-        allocInfo.memoryTypeIndex = memoryTypeIndexRes.value();
+        if (!memory_type_index_res)
+            return db::error("Failed to find memory type index", std::move(memory_type_index_res.error()));
+        allocInfo.memoryTypeIndex = memory_type_index_res.value();
         vk::DeviceMemory memory;
         vk::Result allocRes = input.device.allocateMemory(&allocInfo, nullptr, &buffer.bufferMemory);
         //vk::ResultValue<vk::DeviceMemory> memoryR = a;
         if (allocRes != vk::Result::eSuccess){
             input.device.destroyBuffer(buffer.buffer, nullptr);
             buffer.state = Buffer::State::Err;
-            return std::unexpected(EmptyErr{});
+            return db::error("Failed to allocate memory");
         }
         buffer.state = Buffer::MemAllocated;
         if (input.device.bindBufferMemory(buffer.buffer, buffer.bufferMemory, 0) != vk::Result::eSuccess){
             input.device.freeMemory(buffer.bufferMemory);
             input.device.destroyBuffer(buffer.buffer);
             buffer.state = Buffer::Err;
-            return std::unexpected(EmptyErr{});
+            return db::error("Failed to bind buffer memory");
         }
         buffer.state = Buffer::MemBinded;
-        return EmptyOk{};
+        return db::EmptyOk{};
     }
 
     export [[nodiscard]] inline auto
-    createBuffer(BufferInput& bufferInput) noexcept -> std::expected<Buffer, EmptyErr> {
+    create_buffer(BufferInput& bufferInput) noexcept -> db::Result<Buffer> {
         vk::BufferCreateInfo bufferInfo = {};
         bufferInfo.flags = vk::BufferCreateFlags();
         bufferInfo.size = bufferInput.size;
@@ -105,61 +106,51 @@ export namespace vkUtil{
 
         Buffer buffer = Buffer::init();
         if (bufferInput.device.createBuffer(&bufferInfo,nullptr, &buffer.buffer) != vk::Result::eSuccess){
-            if constexpr(_DEBUG)
-                std::cerr << "failed to create buffer\n";
-            return std::unexpected(EmptyErr{});
+            return db::error("Failed to create buffer");
         }
         buffer.state = Buffer::State::BufferCreated;
-        auto res = allocateBufferMemory(buffer, bufferInput);
+        auto res = allocate_buffer_memory(buffer, bufferInput);
         if (!res) {
-            return std::unexpected(res.error());
+            return db::error("Failed to allocate buffer memory", std::move(res.error()));
         }
         return buffer;
     }
 
     export [[nodiscard]] inline auto
-    mapBuffer(vk::Device device, Buffer& buffer, void *src, uint32_t offset, uint32_t size) -> std::expected<EmptyOk, EmptyErr> {
+    mapBuffer(vk::Device device, Buffer& buffer, void *src, uint32_t offset, uint32_t size) -> db::Result<db::EmptyOk> {
         assert(buffer.state == Buffer::MemAllocated || buffer.state == Buffer::MemBinded);
         vk::ResultValue<void *> memoryLocationR = device.mapMemory(buffer.bufferMemory, offset, size);
         if (memoryLocationR.result != vk::Result::eSuccess)
-            return std::unexpected(EmptyErr{});
+            db::error("Failed to map memory");
         memcpy(memoryLocationR.value, src, size);
         device.unmapMemory(buffer.bufferMemory);
-        return EmptyOk{};
+        return db::EmptyOk{};
     }
 
 
     export [[nodiscard]] inline auto
-    copyBuffer(CopyBufferInput input) -> std::expected<EmptyOk, EmptyErr> {
+    copyBuffer(CopyBufferInput input) -> db::Result<db::EmptyOk> {
         if (input.cmdBuffer.reset() != vk::Result::eSuccess){
-            if constexpr(_DEBUG)
-                std::cerr << "failed to reset cmdbuffer\n";
-            return std::unexpected(EmptyErr{});
+            return db::error("Failed to reset command buffer");
         }
         
         vk::CommandBufferBeginInfo info = {};
         info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
         if (input.cmdBuffer.begin(info) != vk::Result::eSuccess){
-            if constexpr(_DEBUG)
-                std::cerr << "failed to begin command buffer\n";
-            return std::unexpected(EmptyErr{});
+            return db::error("Failed to begin command buffer");
         }
         input.cmdBuffer.copyBuffer(input.srcBuffer, input.dstBuffer, 1, &input.region); 
         if (input.cmdBuffer.end() != vk::Result::eSuccess)
-            return std::unexpected(EmptyErr{});
+            return db::error("Failed to copy buffer");
         vk::SubmitInfo submitInfo ={};
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &input.cmdBuffer;
         if (input.queue.submit(1, &submitInfo, nullptr) != vk::Result::eSuccess){
-            if constexpr (_DEBUG)
-                std::cerr << "failed to submit cmdbuffer\n";
-            return std::unexpected(EmptyErr{});
+            return db::error("Failed to submit command buffer");
         }
         if (input.queue.waitIdle() != vk::Result::eSuccess){
-            if constexpr(_DEBUG)
-                std::cerr << "failed to wait for transfer queue to finish\n";
-            return std::unexpected(EmptyErr{});
+            return db::error("failed to wait for transfer queue to finish");
         }
-        return EmptyOk{};
+        return db::EmptyOk{};
     }
 }

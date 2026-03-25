@@ -9,26 +9,26 @@ import <glm/gtc/matrix_transform.hpp>;
 
 namespace vkInit {
 
-namespace player {
-export enum Movement {
-  Still = 0,
-  Forward = 1,
-  Backward = 2,
-  Left = 4,
-  Right = 8,
-  Up = 16,
-  Down = 32,
-};
-constexpr float mov_sp = 0.5f;          // m*s-1
-constexpr float mov_sp_vertical = 0.2f; // m*s-1
-} // namespace player
+    namespace player {
+        export enum Movement {
+            Still = 0,
+            Forward = 1,
+            Backward = 2,
+            Left = 4,
+            Right = 8,
+            Up = 16,
+            Down = 32,
+        };
+        constexpr float mov_sp = 0.5f;          // m*s-1
+        constexpr float mov_sp_vertical = 0.2f; // m*s-1
+    } // namespace player
 
-export struct Camera {
+    export struct Camera {
 
-    glm::vec3 eye;
-    glm::vec3 center;
-    glm::vec3 up;
-    int state;
+        glm::vec3 eye;
+        glm::vec3 center;
+        glm::vec3 up;
+        int state;
 
   inline glm::mat4 getView() noexcept {
     return glm::lookAt(this->eye, this->center, this->up);

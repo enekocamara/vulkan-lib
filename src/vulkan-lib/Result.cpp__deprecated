@@ -1,0 +1,33 @@
+module vulkan_lib.result;
+import <string>;
+import <optional>;
+import <memory>;
+import <source_location>;
+import <expected>;
+
+auto make_error(std::string message, std::optional<Error> error_source, uint32_t code, std::source_location location) -> Error {
+	if (error_source.has_value()) {
+		return Error{
+			std::move(message),
+			code,
+			location,
+			std::make_unique<Error>(std::move(error_source.value()))
+		};
+	}
+	else
+		return Error{ std::move(message), code, location, std::nullopt};
+}
+
+auto error(std::string message, std::optional<Error> error_source, uint32_t code, std::source_location location) -> std::unexpected<Error> {
+	if (error_source.has_value()) {
+		return std::unexpected(Error{
+				std::move(message),
+				code,
+				location,
+				std::make_unique<Error>(std::move(error_source.value()))
+			});
+	}
+	else
+		return std::unexpected(Error{ std::move(message), code, location, std::nullopt});
+
+}

@@ -2,7 +2,7 @@ module;
 
 #include "vulkan-lib/Config.h"
 
-export module vulkan_lib.swapchain;
+export module vulkan_lib.Swapchain;
 
 //#include "Logging.h"
 import <expected>;
@@ -10,14 +10,49 @@ import <iostream>;
 import <string>;
 import <vector>;
 
-import vulkan_lib.swapchainFrame;
-import vulkan_lib.result;
-import vulkan_lib.logging;
-import vulkan_lib.queueFamilies;
-import vulkan_lib.swapchainFrame;
+import vulkan_lib.SwapchainFrame;
+import debug_lib.result;
+import debug_lib.Logger;
+import vulkan_lib.queue_families;
 
-namespace vkInit{
+namespace vkl{
 
+    export class Swapchain {
+    public:
+        struct CreateInfo {
+            vk::Device logical_device;
+            vk::PhysicalDevice physical_device;
+            vk::SurfaceKHR surface;
+            int width;
+            int height;
+            vk::CommandPool command_pool;
+        };
+        struct SwapChainSupportDetails {
+            vk::SurfaceCapabilitiesKHR capabilities;
+            std::vector<vk::SurfaceFormatKHR> formats;
+            std::vector<vk::PresentModeKHR> presentModes;
+        };
+        Swapchain(std::nullptr_t null) {}
+        Swapchain(CreateInfo& info);
+        static auto choose_swapchain_format(std::vector<vk::SurfaceFormatKHR> formats)noexcept -> vk::SurfaceFormatKHR;
+        static auto choose_swapchain_present_mode(std::vector<vk::PresentModeKHR> presentModes)noexcept -> vk::PresentModeKHR;
+        static auto choose_swapchain_extent(int height, int width, vk::SurfaceCapabilitiesKHR capabilities)noexcept -> vk::Extent2D;
+
+        auto get_frames()->std::vector<vkl::SwapchainFrame>&;
+        auto get_swapchain() -> vk::SwapchainKHR {
+            return m_swapchain;
+        };
+        auto get_format() -> vk::SurfaceFormatKHR { return m_format; }
+        auto get_extent() -> vk::Extent2D { return m_extent; }
+   private:
+        auto query_swapchain_support(vk::PhysicalDevice physical_device, vk::SurfaceKHR surface) noexcept -> db::Result<SwapChainSupportDetails>;
+        vk::SwapchainKHR m_swapchain;
+        std::vector<SwapchainFrame> m_frames;
+        vk::SurfaceFormatKHR m_format;
+        vk::Extent2D m_extent;
+        bool m_is_initialized = false;
+    };
+    /*
     export struct SwapChainSupportDetails{
         vk::SurfaceCapabilitiesKHR capabilities;
         std::vector<vk::SurfaceFormatKHR> formats;
@@ -100,11 +135,13 @@ namespace vkInit{
         support.presentModes = presentModesR.value;
         if constexpr (_DEBUG){
     		for (vk::PresentModeKHR presentMode : support.presentModes) {
-	    		std::cout << '\t' << log_present_mode(presentMode) << '\n';
+	    		//std::cout << '\t' << log_present_mode(presentMode) << '\n'; TODO
 	    	}
         }
         return support;
     }
+    */
+    /*
 
     ///returns the format with formate B8G8R8A8Unorm and
     ///color space eSrgbNonlinear. return the first if none
@@ -145,10 +182,10 @@ namespace vkInit{
     }
 
     export [[nodiscard]] inline auto 
-    create_swapchain_bundle(vk::Device logical_device, vk::PhysicalDevice physical_device, vk::SurfaceKHR surface, int width, int height) -> std::expected<SwapChainBundle, EmptyErr> {
+    create_swapchain_bundle(vk::Device logical_device, vk::PhysicalDevice physical_device, vk::SurfaceKHR surface, int width, int height, vk::CommandPool command_pool) -> std::expected<SwapChainBundle, Error> {
         std::expected<SwapChainSupportDetails, EmptyErr> supportR = query_swapchain_support(physical_device,  surface);
         if (!supportR)
-            return std::unexpected(EmptyErr{});
+            return error("Failed to query swapchain support");
         SwapChainSupportDetails support = supportR.value();
         vk::SurfaceFormatKHR format = choose_swapchain_format(support.formats);
         vk::PresentModeKHR presentMode = choose_swapchain_present_mode(support.presentModes);
@@ -189,14 +226,26 @@ namespace vkInit{
         SwapChainBundle bundle{};
         vk::ResultValue<vk::SwapchainKHR> swapchainR = logical_device.createSwapchainKHR(createInfo, nullptr);
         if (swapchainR.result != vk::Result::eSuccess)
-            return std::unexpected(EmptyErr{});
+            return error("Failed create swapchain khr");
         bundle.swapchain = swapchainR.value;
         bundle.extent = extent;
         bundle.format = format.format;
 
-        vk::ResultValue<std::vector<vk::Image>> imagesR = logical_device.getSwapchainImagesKHR(bundle.swapchain);
-        if (imagesR.result != vk::Result::eSuccess)
-            return std::unexpected(EmptyErr{});
+        vk::ResultValue<std::vector<vk::Image>> images_res = logical_device.getSwapchainImagesKHR(bundle.swapchain);
+        if (images_res.result != vk::Result::eSuccess)
+            return error("Failed to get swapchain images khr");
+        vk::CommandBufferAllocateInfo allocInfo{};
+        allocInfo.commandPool = command_pool;
+        allocInfo.level = vk::CommandBufferLevel::ePrimary;
+        allocInfo.commandBufferCount = images_res.value.size();
+
+        auto command_buffers_res = logical_device.allocateCommandBuffers(allocInfo);
+        if (command_buffers_res.result != vk::Result::eSuccess)
+            return error("Failed to allocate command buffers");
+
+        for (int i = 0; i < images_res.value.size(); i++) {
+            bundle.frames.emplace_back(logical_device, physical_device, images_res.value[i], format.format, command_buffers_res.value[i]);
+        }
         bundle.frames.resize(imagesR.value.size());
         for (uint32_t i = 0; i < bundle.frames.size(); i++){
             bundle.frames[i].image = imagesR.value[i];
@@ -223,4 +272,5 @@ namespace vkInit{
         }
         return bundle;
     }
+    */
 }

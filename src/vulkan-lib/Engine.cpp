@@ -4,10 +4,12 @@ module;
 #include <GLFW/glfw3.h>
 module vulkan_lib.engine;
 
+/*
 import <glm/gtc/matrix_transform.hpp>;
 import <iostream>;
 import <expected>;
 import <stdexcept>; 
+import <filesystem>;
 import vulkan_lib.framebuffer;
 import vulkan_lib.instance;
 import vulkan_lib.logging;
@@ -157,7 +159,7 @@ namespace vkl {
     }
 
     [[nodiscard]] std::expected<EmptyOk, EmptyErr> Engine::make_instance() noexcept {
-        auto instance_res = vkInit::make_instance();
+        auto instance_res = vkInit::make_instance("default", "default");
         if (!instance_res)
             return std::unexpected(EmptyErr{});
         instance = instance_res.value();
@@ -176,10 +178,6 @@ namespace vkl {
     [[nodiscard]] std::expected<vk::DebugUtilsMessengerEXT, EmptyErr>
         Engine::make_debug_messanger() noexcept {
         return vkInit::make_debug_messanger(instance, dldi);
-        /*    Result<vk::DebugUtilsMessengerEXT, EmptyErr> debugMessangerR =
-              vkInit::make_debug_messanger(instance, dldi); if (!debugMessangerR.is_ok())
-              return err<vk::DebugUtilsMessengerEXT>();
-              return ok(debugMessangerR.get_ok());*/
     }
 
     [[nodiscard]] std::expected<EmptyOk, EmptyErr> Engine::make_device() noexcept {
@@ -238,10 +236,6 @@ namespace vkl {
         if (!bundle_res)
             return std::unexpected(EmptyErr{});
         vkInit::SwapChainBundle bundle = bundle_res.value();
-        /*Result<vkInit::SwapChainBundle, EmptyErr> bundleR =
-          vkInit::create_swapchain_bundle(device, physicalDevice, surface, width,
-          height); if (!bundleR.is_ok()) return err(); vkInit::SwapChainBundle bundle =
-          bundleR.get_ok();*/
         swapchain = bundle.swapchain;
         swapchainExtent = bundle.extent;
         swapchainFrames = bundle.frames;
@@ -289,10 +283,11 @@ namespace vkl {
         bindings.count = 2;
         bindings.types.push_back(vk::DescriptorType::eUniformBuffer);
         bindings.types.push_back(vk::DescriptorType::eStorageBuffer);
-        auto descriptor_pool_res = vkInit::make_descriptor_pool(device, static_cast<uint32_t>(swapchainFrames.size()), bindings);
-        if (!descriptor_pool_res)
-            return std::unexpected(EmptyErr{});
-        descriptorPool = descriptor_pool_res.value();
+        exit(123);//todo
+        //auto descriptor_pool_res = vkInit::make_descriptor_pool(device, static_cast<uint32_t>(swapchainFrames.size()), bindings);
+        //if (!descriptor_pool_res)
+        //    return std::unexpected(EmptyErr{});
+        //descriptorPool = descriptor_pool_res.value();
 
         for (vkInit::SwapchainFrame& frame : swapchainFrames) {
             auto frame_in_flight_fence_res = vkInit::make_fence(device);
@@ -307,10 +302,11 @@ namespace vkl {
 
             if (!frame.make_descriptor_resources(device, physicalDevice))
                 return std::unexpected(EmptyErr{});
-            auto frame_descriptor_set_res = vkInit::allocate_descriptor_set(device, descriptorPool, descriptorSetLayout);
-            if (!frame_descriptor_set_res)
-                return std::unexpected(EmptyErr{});
-            frame.descriptorSet = frame_descriptor_set_res.value();
+            exit(1234);//todo
+            //auto frame_descriptor_set_res = vkInit::allocate_descriptor_set(device, descriptorPool, descriptorSetLayout);
+            //if (!frame_descriptor_set_res)
+            //    return std::unexpected(EmptyErr{});
+            //frame.descriptorSet = frame_descriptor_set_res.value();
         }
         return EmptyOk{};
     }
@@ -318,11 +314,13 @@ namespace vkl {
     [[nodiscard]] std::expected<EmptyOk, EmptyErr> Engine::make_pipeline() noexcept {
         vkInit::GraphicsPipelineBundle specs = {};
         specs.device = device;
-        specs.vertexFilepath = "vertex.spv";
-        specs.fragmentFilepath = "fragment.spv";
+        auto path = std::filesystem::path(PROJECT_ROOT) / "assets" / "shaders" / "example";
+        specs.vertexFilepath = (path / "vertex.spv").string();
+        specs.fragmentFilepath = (path / "fragment.spv").string();
         specs.extent = swapchainExtent;
         specs.swapchainImageFormat = swapchainFormat;
-        specs.descriptorSetLayout = descriptorSetLayout;
+        exit(12);//todo
+        //specs.descriptorSetLayout = descriptorSetLayout;
         auto graphics_pipeline_res = vkInit::make_graphics_pipeline(specs);
         if (!graphics_pipeline_res)
             return std::unexpected(EmptyErr{});
@@ -379,15 +377,6 @@ namespace vkl {
             0.05f, 0.05f, 1.0f, 0.0f, 0.0f,1.0f,1.0f,
             -0.05f, 0.05f, 1.0f, 0.0f,  0.0f,0.0f,1.0f
         };
-        /*std::vector<float> triangle_g = {
-            0.0f, -0.05f, 0.0f,   1.0f,  0.0f, 0.05f, 0.05f, 0.0f,
-            1.0f, 0.0f,   -0.05f, 0.05f, 0.0f, 1.0f,  0.0f,
-        };
-        std::vector<float> triangle_b = {
-            0.0f, -0.05f, 0.0f, 0.0f,  1.0f,
-            0.05f, 0.05f, 0.0f, 0.0f, 1.0f,
-            -0.05f, 0.05f, 0.0f, 0.0f,  1.0f,
-        };*/
         vertexManager->consume(MeshType::TRIANGLE_R, triangle_r);
         //vertexManager->consume(MeshType::TRIANGLE_G, triangle_g);
         //vertexManager->consume(MeshType::TRIANGLE_B, triangle_b);
@@ -404,17 +393,6 @@ namespace vkl {
 
     void Engine::prepare_frame(uint32_t imageIndex, const Scene& scene) noexcept {
         vkInit::SwapchainFrame& _frame = swapchainFrames[imageIndex];
-        /*glm::vec3 eye = {5.0f, 0.0f, -1.0f};
-        glm::vec3 center = glm::vec3(0.0f);
-        glm::vec3 up = {0.0f, -1.0f, 0.0f};
-        glm::mat4 view = glm::lookAt(eye, center, up);
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f),
-                static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height),
-                0.1f, 10.f);
-        projection[1][1] *= -1;
-        swapchainFrames[imageIndex].cameraData.view = view;
-        swapchainFrames[imageIndex].cameraData.projection = projection;
-        swapchainFrames[imageIndex].cameraData.viewProjection = projection * view;*/
         //swapchainFrames[imageIndex].cameraData.viewProjection = glm::mat4(1.0f);
         _frame.cameraData.viewProjection = camera.getViewProjection(swapchainExtent);
 
@@ -426,11 +404,6 @@ namespace vkl {
         size_t i = 0;
         _frame.modelTransforms[i++] = glm::translate(glm::mat4(1.0f), glm::vec3(0, -1, 0));
 
-        /*
-        for (const glm::vec3& position : scene.triangleRPositions){
-            _frame.modelTransforms[i] = glm::translate(glm::mat4(1.0f),position);
-            i++;
-        }*/
         memcpy(_frame.modelBufferWriteLocation, _frame.modelTransforms.data(), i * sizeof(glm::mat4));
         _frame.write_descriptor_set(device);
     }
@@ -461,7 +434,8 @@ namespace vkl {
 
         commandBuffer.beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, layout, 0, swapchainFrames[imageIndex].descriptorSet, nullptr);
+        exit(2);//todo
+        //commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, layout, 0, swapchainFrames[imageIndex].descriptorSet, nullptr);
 
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
 
@@ -471,8 +445,6 @@ namespace vkl {
         glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0, -1, 0));
         vkInit::ObjectData objectData;
         objectData.model = model;
-        /* commandBuffer.pushConstants(layout, vk::ShaderStageFlagBits::eVertex, 0,
-                 sizeof(objectData), &objectData);*/
         commandBuffer.draw(vertexManager->sizes[0], 3, vertexManager->offsets[0],
             0);
 
@@ -562,3 +534,4 @@ namespace vkl {
         return EmptyOk{};
     }
 }
+*/

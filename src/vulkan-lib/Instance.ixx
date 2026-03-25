@@ -8,7 +8,9 @@ import <GLFW/glfw3.h>;
 import <vector>;
 import <iostream>;
 import <expected>;
-import vulkan_lib.result;
+import <format>;
+import debug_lib.result;
+import debug_lib.Logger;
 
 
 namespace vkInit{
@@ -19,9 +21,9 @@ namespace vkInit{
         if (supportedExtensionsV.result != vk::Result::eSuccess)
             return false;
         if constexpr (_DEBUG){
-            std::cout << "Device can support the following extensions: \n";
+            db::Logger::core_error("Device can support the following extensions: ");
             for (auto supportedExtension : supportedExtensionsV.value)
-                std::cout << "\t\"" << supportedExtension.extensionName << "\"\n";
+                db::Logger::core_error(std::format("\t\"{}\"", supportedExtension.extensionName));
             std::cout << '\n';
         }
 
@@ -80,19 +82,18 @@ namespace vkInit{
     }
 
     export [[nodiscard]] inline auto
-    make_instance() -> std::expected<vk::Instance, EmptyErr> {
-        if constexpr (_DEBUG)
-            std::cout << "making instance...\n";
+    make_instance(const std::string& app_name, const std::string& engine_name) -> db::Result<vk::Instance> {
+        db::Logger::core_trace("Making instance");
 
         uint32_t version = 0;
         vkEnumerateInstanceVersion(&version);
-        if constexpr (_DEBUG){
-            std::cout << "System can support vulkan Variant: " << VK_API_VERSION_VARIANT(version)
-                << ",  Major: " << VK_API_VERSION_MAJOR(version)
-                << ",  Minor: " << VK_API_VERSION_MINOR(version)
-                << ",  Patch: " << VK_API_VERSION_PATCH(version) << '\n';
-        }
 
+        db::Logger::core_trace(std::format("System can support vulkan Variant: {}, Major: {}, Minor: {}, Patch: {}",
+            VK_API_VERSION_VARIANT(version),
+            VK_API_VERSION_MAJOR(version),
+            VK_API_VERSION_MINOR(version),
+            VK_API_VERSION_PATCH(version)
+            ));
 
         vk::ApplicationInfo appInfo(
                 "name", // app name
@@ -108,23 +109,22 @@ namespace vkInit{
 
         std::vector<const char *>extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-        if constexpr (_DEBUG)
+        if constexpr (_DEBUG){
             extensions.push_back("VK_EXT_debug_utils");
             
-        if constexpr (_DEBUG){
-            std::cout << "extensions required:\n";
-            for (auto extension : extensions){
-                std::cout << "\t\""<< extension << "\"\n";
-            }
+            db::Logger::core_trace("Extensions required:");
+            for (auto extension : extensions)
+                db::Logger::core_trace(std::format("\t\"{}\"", extension));
         }
         
         std::vector<const char *> layers;
+
 
         if constexpr (_DEBUG)
             layers.push_back("VK_LAYER_KHRONOS_validation");
 
         if (!supported(extensions, layers))
-            return std::unexpected(EmptyErr{});
+            return db::error("VK_LAYER_KHRONOS_validation not supported");
 
         vk::InstanceCreateInfo createInfo(
                 vk::InstanceCreateFlags(),
@@ -136,9 +136,8 @@ namespace vkInit{
         vk::ResultValue<vk::Instance> instance = vk::createInstance(
                 createInfo, nullptr);
         if (instance.result != vk::Result::eSuccess)
-            return std::unexpected(EmptyErr{});
+            return db::error("Failed to creaet instance");
         else 
             return instance.value;
-        
     }
 }

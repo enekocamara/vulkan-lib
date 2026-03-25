@@ -6,19 +6,9 @@ export module vulkan_lib.logging;
 
 import <expected>;
 import <iostream>;
-import vulkan_lib.result;
+import debug_lib.result;
 
-namespace vkInit{
-    export inline auto
-    printDebug(const std::string& str) noexcept -> void{
-        if constexpr(_DEBUG)
-            std::cout << str << '\n';
-    }
-    export inline auto
-    errprintDebug(const std::string& str) noexcept -> void{
-        if constexpr(_DEBUG)
-            std::cerr << "Error, " << str << '\n';
-    }
+namespace vkl{
 
     /*V
      * Debug call back:
@@ -83,18 +73,18 @@ namespace vkInit{
     */
 
     export [[nodiscard]] inline auto
-    make_debug_messanger(vk::Instance instance, vk::detail::DispatchLoaderDynamic dldi)noexcept -> std::expected<vk::DebugUtilsMessengerEXT, EmptyErr> {
-        vk::DebugUtilsMessengerCreateInfoEXT createInfo = vk::DebugUtilsMessengerCreateInfoEXT(
+    make_debug_messanger(vk::Instance instance, vk::detail::DispatchLoaderDynamic dldi)noexcept -> db::Result<vk::DebugUtilsMessengerEXT> {
+        vk::DebugUtilsMessengerCreateInfoEXT create_info = vk::DebugUtilsMessengerCreateInfoEXT(
                 vk::DebugUtilsMessengerCreateFlagsEXT(),
                 vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
                 vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance,
                 debugCallback,
                 nullptr
                 );
-        vk::ResultValue<vk::DebugUtilsMessengerEXT> messengerR = instance.createDebugUtilsMessengerEXT(createInfo, nullptr, dldi);
-        if (messengerR.result != vk::Result::eSuccess)
-            return std::unexpected(EmptyErr{});
-        return messengerR.value;
+        vk::ResultValue<vk::DebugUtilsMessengerEXT> messenger_res = instance.createDebugUtilsMessengerEXT(create_info, nullptr, dldi);
+        if (messenger_res.result != vk::Result::eSuccess)
+            return db::error("Failed to creaet debug utils messenger EXT");
+        return messenger_res.value;
     }
 
     export [[nodiscard]] inline auto 

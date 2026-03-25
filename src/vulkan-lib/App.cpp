@@ -7,9 +7,8 @@ import <sstream>;
 
 import <iostream>;
 import <format>;
-import vulkan_lib.engine;
 import vulkan_lib.scene;
-import vulkan_lib.result;
+import debug_lib.result;
 
 //#include "Engine.h"
 //#include "Scene.h"
@@ -17,14 +16,14 @@ namespace vkl {
     App::App(int width, int height) {
         auto res = build_glfw_window(width, height);
         if (!res)
-            throw std::runtime_error(std::format("failed to make window: {}", res.error().message));
-        graphicsEngine = std::make_unique<Engine>(width, height, window);
+            throw std::runtime_error(std::format("failed to make window: {}", res.error().to_string()));
+//        graphicsEngine = std::make_unique<Engine>(width, height, window);
     }
 
     App::~App() {
     }
 
-    [[nodiscard]] auto App::build_glfw_window(int width, int height)noexcept -> Result<EmptyOk, Error> {
+    [[nodiscard]] auto App::build_glfw_window(int width, int height)noexcept -> db::Result<db::EmptyOk> {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -34,26 +33,26 @@ namespace vkl {
         if (window) {
             if constexpr (_DEBUG)
                 std::cout << "window successfully created.\n";
-            return EmptyOk{};
+            return db::EmptyOk{};
         }
         else {
             if constexpr (_DEBUG)
                 std::cout << "CRITICAL ERROR, failed to  build glfw window\n";
-            return error("failed to build glfw window");
+            return db::error("failed to build glfw window");
         }
     }
 
-    [[nodiscard]] std::expected<EmptyOk, EmptyErr>    App::run() {
+    [[nodiscard]] db::Result<db::EmptyOk>    App::run() {
         std::chrono::time_point start = std::chrono::high_resolution_clock::now();
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
             std::chrono::time_point end = std::chrono::high_resolution_clock::now();//get end
-            if (!graphicsEngine->render(scene, std::chrono::duration_cast<std::chrono::duration<float>>(end - start)))
-                return std::unexpected(EmptyErr{});
+            //if (!graphicsEngine->render(scene, std::chrono::duration_cast<std::chrono::duration<float>>(end - start)))
+            //    return  db::error("Error at rendering");
             start = end;
             calculateFrameRate();
         }
-        return EmptyOk{};
+        return db::EmptyOk{};
     }
 
     void App::calculateFrameRate() {
