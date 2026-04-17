@@ -1,10 +1,9 @@
 module;
 
 #include "vulkan-lib/Config.h"
-#include <fstream>
 export module vulkan_lib.shader;
 
-import <iostream>;
+
 import debug_lib.result;
 
 namespace vkl{

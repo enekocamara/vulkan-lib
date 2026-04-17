@@ -1,19 +1,19 @@
 module;
 #include "vulkan-lib/Config.h"
-
+#include <glm/glm.hpp>
 module vulkan_lib.SwapchainFrame;
 
-import vulkan_lib.memory;
-import <glm/glm.hpp>;
-import <expected>;
+
 import debug_lib.result;
+import vulkan_lib.memory;
 import vulkan_lib.logging;
 import vulkan_lib.sync;
 
 namespace vkl {
-    SwapchainFrame::SwapchainFrame(vk::Device device, vk::PhysicalDevice physical_device, vk::Image image, vk::Format format, vk::CommandBuffer command_buffer) :
+    SwapchainFrame::SwapchainFrame(vk::Device device, vk::PhysicalDevice physical_device, vk::Image image, vk::Format format, vk::CommandBuffer command_buffer, std::vector<vk::DescriptorSet> descriptor_sets) :
         m_image(image),
-        m_command_buffer(command_buffer)
+        m_command_buffer(command_buffer),
+        m_descriptor_sets(descriptor_sets)
     {
         auto frame_in_flight_fence_res = vkl::make_fence(device);
         auto frame_image_available_res = vkl::make_semaphore(device);

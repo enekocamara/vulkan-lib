@@ -3,9 +3,10 @@ module;
 #include <vulkan-lib/Config.h>
 
 module vulkan_lib.device;
-import debug_lib.Logger;
-import debug_lib.result;
 
+import debug_lib.result;
+import vulkan_lib.queue_families;
+import debug_lib.Logger;
 namespace vkl {
 
     auto choose_physical_device(vk::Instance& instance) noexcept -> db::Result<vk::PhysicalDevice> {
@@ -69,5 +70,8 @@ namespace vkl {
             return db::error("Failed to create a logical device");
         }
         return deviceV.value;
+    }
+    auto get_queue(vk::PhysicalDevice physical_device, vk::Device device, vk::SurfaceKHR surface) noexcept -> vkl::QueueFamilyIndices{
+        return  vkl::find_queue_families(physical_device, surface);
     }
 }

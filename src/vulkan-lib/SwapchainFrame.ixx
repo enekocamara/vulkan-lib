@@ -1,14 +1,14 @@
 module;
 
 #include "vulkan-lib/Config.h"
-
+#include <glm/glm.hpp>
 export module vulkan_lib.SwapchainFrame;
 
+
+
+
 import vulkan_lib.memory;
-import <glm/glm.hpp>;
-import <expected>;
 import debug_lib.result;
-import debug_lib.Logger;
 
 namespace vkl {
 
@@ -21,8 +21,7 @@ namespace vkl {
     export class SwapchainFrame {
     public:
         SwapchainFrame() = delete;
-        SwapchainFrame(vk::Device device, vk::PhysicalDevice physical_device, vk::Image image, vk::Format format, vk::CommandBuffer command_buffer);
-
+        SwapchainFrame(vk::Device device, vk::PhysicalDevice physical_device, vk::Image image, vk::Format format, vk::CommandBuffer command_buffer, std::vector<vk::DescriptorSet> descriptor_sets);
 
         auto get_command_buffer() -> vk::CommandBuffer { return m_command_buffer; }
 

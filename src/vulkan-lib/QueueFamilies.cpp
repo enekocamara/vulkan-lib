@@ -1,8 +1,12 @@
 module;
 
 #include <vulkan-lib/Config.h>
+#include <cstdint>
+#include <vector>
+#include <format>
 
 module vulkan_lib.queue_families;
+import debug_lib.Logger;
 
 namespace vkl {
 	bool QueueFamilyIndices::is_complete() {

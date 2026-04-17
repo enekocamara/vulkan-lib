@@ -1,3 +1,6 @@
+module;
+#include <glm/glm.hpp>
+
 module vulkan_lib.scene;
 
 Scene::Scene(){

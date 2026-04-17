@@ -1,6 +1,7 @@
+module;
+#include <glm/glm.hpp>
+#include <vector>
 export module vulkan_lib.scene;
-
-import <glm/glm.hpp>;
 
 export enum class MeshType{
     TRIANGLE_R,

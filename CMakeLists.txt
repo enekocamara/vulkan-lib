@@ -4,6 +4,7 @@ project(vulkan-lib CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 
 # Set the output directory structure
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/output/lib/$<CONFIG>")
@@ -13,8 +14,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/output/bin/$<CONFIG>")
 file(GLOB_RECURSE SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
 )
 file(GLOB_RECURSE CXX_MODULES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.ixx
@@ -47,15 +46,17 @@ endforeach()
 find_package(Doxygen REQUIRED)
 find_package(Vulkan REQUIRED)
 
-enable_testing()
+#enable_testing()
 
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-set(CTEST_BINARY_DIRECTORY "${CMAKE_SOURCE_DIR}/Testing")
+#set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+#set(CTEST_BINARY_DIRECTORY "${CMAKE_SOURCE_DIR}/Testing")
 
 add_library(vulkan-lib STATIC)
 target_sources(vulkan-lib
     PRIVATE ${SOURCES}
-    PRIVATE FILE_SET CXX_MODULES FILES ${CXX_MODULES}
+    PUBLIC
+        FILE_SET CXX_MODULES
+        FILES ${CXX_MODULES}
 )
 target_compile_definitions(vulkan-lib PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 target_compile_definitions(vulkan-lib PRIVATE $<$<CONFIG:Release>:RELEASE>)
@@ -68,7 +69,7 @@ target_include_directories(vulkan-lib PUBLIC
 
 target_link_libraries(vulkan-lib PUBLIC Vulkan::Vulkan debug-lib)
 
-target_compile_definitions(vulkan-lib PRIVATE )
+target_compile_definitions(vulkan-lib PUBLIC)
 
 add_compile_definitions(PROJECT_ROOT="${CMAKE_SOURCE_DIR}")
 

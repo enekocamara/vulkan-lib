@@ -1,10 +1,15 @@
 module;
 #include <vulkan-lib/Config.h>
-
+#include <vector>
+#include <ranges>
+#include <iostream>
 module vulkan_lib.Swapchain;
+
 import debug_lib.result;
 import vulkan_lib.logging;
-import <expected>;
+import debug_lib.break_point;
+
+
 
 namespace vkl {
     Swapchain::Swapchain(CreateInfo& info) {
@@ -16,7 +21,7 @@ namespace vkl {
         m_extent = choose_swapchain_extent(info.width, info.height, support.capabilities);
         vk::PresentModeKHR presentMode = choose_swapchain_present_mode(support.presentModes);
 
-        uint32_t imageCount = std::min(
+        m_frames_in_flight = std::min(
             support.capabilities.maxImageCount,
             support.capabilities.minImageCount + 1
         );
@@ -24,7 +29,7 @@ namespace vkl {
         vk::SwapchainCreateInfoKHR createInfo{
             vk::SwapchainCreateFlagsKHR(),
             info.surface,
-            imageCount,
+            m_frames_in_flight,
             m_format.format,
             m_format.colorSpace,
             m_extent,
@@ -65,10 +70,32 @@ namespace vkl {
         auto command_buffers_res = info.logical_device.allocateCommandBuffers(allocInfo);
         if (command_buffers_res.result != vk::Result::eSuccess)
             throw std::runtime_error("Failed to allocate command buffers");
+        
+        //std::vector<vk::DescriptorSetLayout> descriptor_sets_layouts(m_frames_in_flight * info.descriptor_set_layouts.size(),
+        std::vector<vk::DescriptorSetLayout> descriptor_set_layouts =
+            std::ranges::views::repeat(info.descriptor_set_layouts)
+            | std::ranges::views::take(m_frames_in_flight)
+            | std::ranges::views::join
+            | std::ranges::to<std::vector<vk::DescriptorSetLayout>>();
 
-        for (int i = 0; i < images_res.value.size(); i++) {
-            m_frames.emplace_back(info.logical_device, info.physical_device, images_res.value[i], m_format.format, command_buffers_res.value[i]);
+        vk::DescriptorSetAllocateInfo descriptor_sets_alloc_info{
+            info.descriptor_pool,
+            descriptor_set_layouts
+        };
+
+        auto descriptor_sets_res = info.logical_device.allocateDescriptorSets(descriptor_sets_alloc_info);
+        if (descriptor_sets_res.result != vk::Result::eSuccess)
+            throw std::runtime_error("Failed to allocate descriptor sets");
+
+        for (auto [i, image] : std::ranges::views::enumerate(images_res.value)) {
+            m_frames.emplace_back(info.logical_device, info.physical_device, image, m_format.format, command_buffers_res.value[i], std::vector<vk::DescriptorSet>{descriptor_sets_res.value[i * 2], descriptor_sets_res.value[i * 2 + 1]});
         }
+        std::ranges::for_each(m_frames, [&info](vkl::SwapchainFrame& frame) {
+			auto res = info.populate_descriptor_sets(frame);
+            if (!res) {
+				db::break_point();
+			}
+        });
 
         m_is_initialized = true;
     }
@@ -101,7 +128,7 @@ namespace vkl {
             std::cout << "\tmaximum image array layers: " << support.capabilities.maxImageArrayLayers << '\n';
 
             std::cout << "\tsupported transformations:\n";
-            std::vector<std::string> string_list = vkl::log_transform_bits(support.capabilities.supportedTransforms);
+            std::vector<std::string_view> string_list = vkl::log_transform_bits(support.capabilities.supportedTransforms);
             for (auto line : string_list)
                 std::cout << "\t\t" << line << '\n';
 
@@ -176,10 +203,10 @@ namespace vkl {
         return extent;
     }
     auto Swapchain::get_frames()->std::vector<vkl::SwapchainFrame>&{
-        /*if constexpr (_DEBUG) {
-            if (!m_not_initialized)
-                
-        }*/
+        if constexpr (_DEBUG) {
+            if (!m_is_initialized)
+                db::break_point("swapchain is uninitialized");
+        }
         return m_frames;
         
     }

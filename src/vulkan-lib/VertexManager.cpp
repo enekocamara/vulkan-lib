@@ -1,10 +1,11 @@
 module;
 
 #include "vulkan-lib/Config.h"
+#include <expected>
 
 module vulkan_lib.vertexManager;
 
-import <expected>;
+
 import debug_lib.result;
 
 VertexManager::VertexManager(){

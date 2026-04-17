@@ -1,35 +1,32 @@
 module;
-
 #include "vulkan-lib/Config.h"
-export module vulkan_lib.commands;
+#include <functional>
+#include <vector>
+#include <cstdint>
 
+export module vulkan_lib.commands;
 import vulkan_lib.Swapchain;
 import vulkan_lib.SwapchainFrame;
 import debug_lib.result;
-import <expected>;
-import <functional>;
+
 
 namespace vkl {
-    export struct CommandBufferInputBundle{
-        vk::Device device;
-        vk::CommandPool commandPool;
-        std::vector<SwapchainFrame>& frames;
-    };
-    export [[nodiscard]] auto
+    
+    export auto
         make_command_pool(vk::Device device, vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface, uint32_t queueFamilyIndex) -> db::Result<vk::CommandPool>;
 
-    export [[nodiscard]] auto
-        make_command_buffer(CommandBufferInputBundle inputBundle) -> db::Result<vk::CommandBuffer>;
+    export auto
+        make_command_buffer(vk::Device device, vk::CommandPool commandPool) -> db::Result<vk::CommandBuffer>;
 
-    export [[nodiscard]] auto
-        make_frame_command_buffers(CommandBufferInputBundle inputBundle) -> db::Result<db::EmptyOk>;
+    export auto
+        make_frame_command_buffers(vk::Device device, vk::CommandPool commandPool, std::vector<SwapchainFrame>* frames) -> db::Result<db::EmptyOk>;
 
-    export [[nodiscard]] auto
-        single_time_command(vk::Device device, vk::CommandPool command_pool, std::function<std::expected<db::EmptyOk, db::Error>()> lambda) -> db::Result<db::EmptyOk>;
+    export auto
+        single_time_command(vk::Device device, vk::CommandPool command_pool, vk::Queue queue, std::function<db::Result<db::EmptyOk>(vk::CommandBuffer command_buffer)> lambda) -> db::Result<db::EmptyOk>;
 
-    export [[nodiscard]] auto
+    export auto
         begin_single_time_command(vk::Device device, vk::CommandPool command_pool) -> db::Result<vk::CommandBuffer>;
 
-    export [[nodiscard]] auto
+    export auto
         end_single_time_command(vk::Device device, vk::CommandPool command_pool, vk::CommandBuffer command_buffer, vk::Queue queue) -> db::Result<db::EmptyOk>;
 }

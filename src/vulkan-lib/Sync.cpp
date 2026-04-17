@@ -1,7 +1,7 @@
 module;
 #include <vulkan-lib/Config.h>
 module vulkan_lib.sync;
-
+import debug_lib.result;
 
 namespace vkl {
 

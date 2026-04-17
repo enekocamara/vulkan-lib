@@ -1,11 +1,11 @@
 module;
 
 #include <vulkan-lib/Config.h>
-
 module vulkan_lib.pipeline;
 
 import debug_lib.result;
 import vulkan_lib.mesh;
+import debug_lib.Logger;
 
 namespace vkl {
     auto  make_pipeline_layout(vk::Device device, const std::vector<vk::DescriptorSetLayout>& descriptor_set_layouts) noexcept -> db::Result<vk::PipelineLayout> {

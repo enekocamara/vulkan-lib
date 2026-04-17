@@ -3,8 +3,6 @@ module;
 export module vulkan_lib.vertexManager;
 
 import vulkan_lib.scene;
-import <array>;
-import <expected>;
 import vulkan_lib.memory;
 import debug_lib.result;
 
@@ -13,7 +11,7 @@ export class VertexManager{
         VertexManager();
         ~VertexManager();
         auto consume(MeshType type, const std::vector<float>& vertexData) noexcept -> void;
-        [[nodiscard]] auto finalize(vk::Device device, vk::PhysicalDevice physicalDevice, vk::Queue transferQueue, vk::CommandBuffer cmdBuffer) noexcept -> db::Result<db::EmptyOk>;
+        auto finalize(vk::Device device, vk::PhysicalDevice physicalDevice, vk::Queue transferQueue, vk::CommandBuffer cmdBuffer) noexcept -> db::Result<db::EmptyOk>;
 
         vkl::Buffer m_vertex_buffer;
         std::array<uint32_t, static_cast<size_t>(MeshType::NUM)> m_offsets;

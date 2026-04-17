@@ -2,9 +2,8 @@ module;
 #include <vulkan-lib/Config.h>
 #include <fstream>
 module vulkan_lib.shader;
+
 import debug_lib.result;
-import <vector>;
-import <string>;
 
 namespace vkl {
 
@@ -23,7 +22,7 @@ namespace vkl {
     auto create_module(std::string filename, vk::Device device) noexcept -> db::Result<vk::ShaderModule> {
         auto contentsR = read_file(filename);
         if (!contentsR)
-            return db::error("Failed to create shader module", std::move(contentsR.error()));
+            return db::error("Failed to create shader module", contentsR.error());
         std::vector<char> contents = contentsR.value();
         vk::ShaderModuleCreateInfo createInfo = {};
         createInfo.flags = vk::ShaderModuleCreateFlags();

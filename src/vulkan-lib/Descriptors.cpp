@@ -1,11 +1,12 @@
 module;
 
 #include <vulkan-lib/Config.h>
-
+#include <vector>
+#include <cstdint>
 module vulkan_lib.descriptors;
 
-import <vector>;
 import debug_lib.result;
+
 
 namespace vkl {
 
@@ -28,13 +29,12 @@ namespace vkl {
 
         vk::ResultValue<vk::DescriptorSetLayout> result = device.createDescriptorSetLayout(createInfo);
         if (result.result != vk::Result::eSuccess){
-            db::Logger::core_error("failed to create descriptor set layout");
             return db::error("Failed to creaet descriptor set layout");
         }
         return std::move(result.value);
     }
     
-    auto make_descriptor_pool(vk::Device device, uint32_t size, const std::vector<DescriptorSetLayoutData>& layouts) noexcept -> db::Result<vk::DescriptorPool> {
+    auto make_descriptor_pool(vk::Device device, uint32_t size, const std::vector<DescriptorSetLayoutData>& layouts) -> db::Result<vk::DescriptorPool> {
         std::vector<vk::DescriptorPoolSize> poolSizes;
         for (const auto& layout : layouts) {
             for (int i = 0; i < layout.count; i++) {
@@ -56,4 +56,15 @@ namespace vkl {
         return std::move(result.value);
     }
 
+    auto allocate_descriptor_sets(vk::Device device, vk::DescriptorPool descriptorPool, const std::vector<vk::DescriptorSetLayout>& layouts) -> db::Result<std::vector<vk::DescriptorSet>> {
+        vk::DescriptorSetAllocateInfo allocInfo = {};
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = layouts.size();
+        allocInfo.pSetLayouts = layouts.data();
+
+        vk::ResultValue<std::vector<vk::DescriptorSet>> result = device.allocateDescriptorSets(allocInfo);
+        if (result.result != vk::Result::eSuccess)
+            return db::error("Failed to allocate descriptor");
+        return std::move(result.value);
+    }
 }

@@ -1,11 +1,11 @@
 module;
 
 #include "vulkan-lib/Config.h"
-
+#include <optional>
+#include <cstdint>
 export module vulkan_lib.queue_families;
 
-import <iostream>;
-import <optional>;
+
 import debug_lib.Logger;
 
 export namespace vkl {
