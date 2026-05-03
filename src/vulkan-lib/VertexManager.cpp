@@ -1,15 +1,11 @@
-module;
+#include "VertexManager.hpp"
 
 #include "vulkan-lib/Config.h"
 #include <expected>
 
-module vulkan_lib.vertexManager;
-
-
-import debug_lib.result;
+#include "debug_lib/result.hpp"
 
 VertexManager::VertexManager(){
-    m_offset = 0;
 }
 
 VertexManager::~VertexManager(){
@@ -19,10 +15,7 @@ VertexManager::~VertexManager(){
 
 void VertexManager::consume(MeshType type, const std::vector<float>& vertex_data) noexcept{
     m_lump.insert(m_lump.end(), vertex_data.cbegin(), vertex_data.cend());
-    uint32_t vertex_count = static_cast<uint32_t>(vertex_data.size()) / 7;
-    m_offsets[static_cast<size_t>(type)] = m_offset;
-    m_sizes[static_cast<size_t>(type)] = vertex_count;
-    m_offset += vertex_count;
+    uint32_t vertex_count = static_cast<uint32_t>(vertex_data.size()) / 5;
 }
     
 auto VertexManager::finalize(vk::Device device, vk::PhysicalDevice physical_device, vk::Queue transferQueue, vk::CommandBuffer cmdBuffer) noexcept->db::Result<db::EmptyOk> {

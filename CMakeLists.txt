@@ -4,7 +4,7 @@ project(vulkan-lib CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+
 
 # Set the output directory structure
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/output/lib/$<CONFIG>")
@@ -14,6 +14,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/output/bin/$<CONFIG>")
 file(GLOB_RECURSE SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
 )
 file(GLOB_RECURSE CXX_MODULES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.ixx
@@ -29,17 +31,6 @@ foreach(file ${SOURCES})
     # Create a source group for each directory
     source_group("${directory}" FILES ${file})
 endforeach()
-foreach(file ${CXX_MODULES})
-    # Get relative path and convert to Windows style
-    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/" "" relative_path ${file})
-    string(REPLACE "/" "\\" relative_path ${relative_path})
-    get_filename_component(directory ${relative_path} DIRECTORY)
-    
-    # Create a source group for each directory
-    source_group("${directory}" FILES ${file})
-endforeach()
-
-
 
 
 # Check if Doxygen is available
@@ -54,9 +45,6 @@ find_package(Vulkan REQUIRED)
 add_library(vulkan-lib STATIC)
 target_sources(vulkan-lib
     PRIVATE ${SOURCES}
-    PUBLIC
-        FILE_SET CXX_MODULES
-        FILES ${CXX_MODULES}
 )
 target_compile_definitions(vulkan-lib PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 target_compile_definitions(vulkan-lib PRIVATE $<$<CONFIG:Release>:RELEASE>)

@@ -1,10 +1,10 @@
-module;
+#include "Instance.hpp"
 #include <GLFW/glfw3.h>
 #include <vulkan-lib/Config.h>
 #include <vector>
-module vulkan_lib.instance;
-import debug_lib.result;
-import debug_lib.Logger;
+
+#include "debug_lib/Result.hpp"
+#include "debug_lib/Logger.hpp"
 
 
 namespace vkl {
@@ -13,12 +13,12 @@ namespace vkl {
         vk::ResultValue<std::vector<vk::ExtensionProperties>> supportedExtensionsV = vk::enumerateInstanceExtensionProperties();
         if (supportedExtensionsV.result != vk::Result::eSuccess)
             return false;
-        if constexpr (_DEBUG) {
+        #ifdef DEBUG
             db::Logger::core_trace("Device can support the following extensions: ");
             for (auto supportedExtension : supportedExtensionsV.value)
                 db::Logger::core_trace(std::format("\t\"{}\"", supportedExtension.extensionName.data()));
             db::Logger::core_trace("\n");
-        }
+        #endif
 
         bool found;
         for (auto extension : extensions) {
@@ -41,12 +41,12 @@ namespace vkl {
         vk::ResultValue<std::vector<vk::LayerProperties>> supportedLayersV = vk::enumerateInstanceLayerProperties();
         if (supportedLayersV.result != vk::Result::eSuccess)
             return false;
-        if constexpr (_DEBUG) {
+        #ifdef DEBUG 
             db::Logger::core_trace("Device can support the following layers: ");
             for (auto supportedLayer : supportedLayersV.value)
                 db::Logger::core_trace(std::format("\t\" {}\"", supportedLayer.layerName.data()));
             db::Logger::core_trace("\n");
-        }
+        #endif
 
         found = false;
         for (auto layer : layers) {
@@ -93,20 +93,20 @@ namespace vkl {
 
         std::vector<const char *>extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-        if constexpr (_DEBUG){
+        #ifdef DEBUG
             extensions.push_back("VK_EXT_debug_utils");
             
             db::Logger::core_trace("Extensions required:");
             for (auto extension : extensions)
                 db::Logger::core_trace(std::format("\t\"{}\"", extension));
-        }
+        #endif
         
         std::vector<const char *> layers;
 
 
-        if constexpr (_DEBUG)
+        #ifdef DEBUG
             layers.push_back("VK_LAYER_KHRONOS_validation");
-
+        #endif
         if (!supported(extensions, layers))
             return db::error("VK_LAYER_KHRONOS_validation not supported");
 

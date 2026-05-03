@@ -1,24 +1,30 @@
-module;
-
+#pragma once
 #include "vulkan-lib/Config.h"
 #include "stb_image.h"
 #include <filesystem>
 #include <glm/glm.hpp>
 
-export module vulkan_lib.Image;
-import debug_lib.result;
-import vulkan_lib.commands;
-
-
+#include "debug_lib/result.hpp"
+#include "vulkan-lib/commands.hpp"
+#include <variant>
+#include <optional>
 namespace fs = std::filesystem;
 namespace vkl {
-    export class Image {
+    class Image {
     public:
+        struct Source{
+            std::variant<fs::path, std::pair<size_t, void*>> source;
+        };
         struct CreateInfo {
             vk::Device device;
             vk::PhysicalDevice physical_device;
-            fs::path file_path;
-			//glm::uvec2 dimmensions;
+            std::optional<Source> source;
+			glm::uvec2 dimmensions;
+            vk::Format format;
+            vk::ImageUsageFlags usage;
+            vk::ImageLayout layout;
+            vk::AccessFlagBits access;
+            vk::PipelineStageFlags pipeline_stage;
             vk::CommandBuffer command_buffer;
             vk::CommandPool command_pool;
             vk::Queue queue;
@@ -40,8 +46,6 @@ namespace vkl {
         int m_channels;
         vk::Device m_device;
         vk::PhysicalDevice m_physical_device;
-        fs::path m_filepath;
-        stbi_uc* m_pixels;
 
         vk::Image m_image;
         vk::DeviceMemory m_image_memory;

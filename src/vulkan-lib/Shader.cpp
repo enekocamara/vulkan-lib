@@ -1,9 +1,9 @@
-module;
+#pragma once
 #include <vulkan-lib/Config.h>
 #include <fstream>
-module vulkan_lib.shader;
 
-import debug_lib.result;
+
+#include "debug_lib/result.hpp"
 
 namespace vkl {
 

@@ -1,15 +1,11 @@
-module;
-
 #include <vulkan-lib/Config.h>
 #include <vector>
 #include <cstdint>
-module vulkan_lib.descriptors;
 
-import debug_lib.result;
-
+#include "Descriptors.hpp"
+#include <debug_lib/Result.hpp>
 
 namespace vkl {
-
     auto make_descriptor_set_layout(vk::Device device, const DescriptorSetLayoutData& bindings) -> db::Result<vk::DescriptorSetLayout> {
         std::vector<vk::DescriptorSetLayoutBinding> layoutBindings;
         layoutBindings.reserve(bindings.count);

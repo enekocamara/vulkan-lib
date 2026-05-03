@@ -1,11 +1,9 @@
-module;
-
+#pragma once
 #include "vulkan-lib/Config.h"
 #include <vector>
 #include <string_view>
-export module vulkan_lib.logging;
 
-import debug_lib.result;
+#include "debug_lib/result.hpp"
 
 namespace vkl{
 
@@ -53,7 +51,7 @@ namespace vkl{
        \returns whether to end program execution
        */
     ///this is the debug call back function
-    export [[nodiscard]] VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    [[nodiscard]] VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -66,18 +64,18 @@ namespace vkl{
        \param dldi dynamically loads instance based dispatch functions
        \returns the created messenger
     */
-    export auto
+    auto
         make_debug_messanger(vk::Instance instance, vk::detail::DispatchLoaderDynamic dldi)noexcept -> db::Result<vk::DebugUtilsMessengerEXT>;
 
-    export [[nodiscard]] auto
+    [[nodiscard]] auto
         log_transform_bits(vk::SurfaceTransformFlagsKHR bits) noexcept -> std::vector<std::string_view>;
 
-    export [[nodiscard]] auto
+    [[nodiscard]] auto
         log_alpha_composite_bits(vk::CompositeAlphaFlagsKHR bits)noexcept -> std::vector<std::string_view>;
     
-    export [[nodiscard]] auto
+    [[nodiscard]] auto
         log_image_usage_bits(vk::ImageUsageFlags bits)noexcept -> std::vector<std::string_view>;
 
-    export [[nodiscard]] auto
+    [[nodiscard]] auto
         log_present_mode(vk::PresentModeKHR presentMode) noexcept -> std::string_view;
 }

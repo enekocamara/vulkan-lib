@@ -1,7 +1,5 @@
-module;
+#include "Scene.hpp"
 #include <glm/glm.hpp>
-
-module vulkan_lib.scene;
 
 Scene::Scene(){
    // triangleRPositions.push_back(glm::vec3(0.0f, 0.0f, 0.0f));/*

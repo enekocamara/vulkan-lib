@@ -1,13 +1,12 @@
-module;
-#include <vulkan-lib/Config.h>
+#include "Swapchain.hpp"
+#include "vulkan-lib/Config.h"
 #include <vector>
 #include <ranges>
 #include <iostream>
-module vulkan_lib.Swapchain;
 
-import debug_lib.result;
-import vulkan_lib.logging;
-import debug_lib.break_point;
+#include "debug_lib/result.hpp"
+#include "vulkan-lib/logging.hpp"
+#include "debug_lib/breakpoint.hpp"
 
 
 
@@ -37,8 +36,8 @@ namespace vkl {
             vk::ImageUsageFlagBits::eColorAttachment
         };
         vkl::QueueFamilyIndices indices = vkl::find_queue_families(info.physical_device, info.surface);
-        uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
-        if (indices.graphicsFamily.value() != indices.presentFamily.value()) {
+        uint32_t queueFamilyIndices[] = { indices.graphics_family.value(), indices.present_family.value() };
+        if (indices.graphics_family.value() != indices.present_family.value()) {
             createInfo.imageSharingMode = vk::SharingMode::eConcurrent;
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -88,7 +87,17 @@ namespace vkl {
             throw std::runtime_error("Failed to allocate descriptor sets");
 
         for (auto [i, image] : std::ranges::views::enumerate(images_res.value)) {
-            m_frames.emplace_back(info.logical_device, info.physical_device, image, m_format.format, command_buffers_res.value[i], std::vector<vk::DescriptorSet>{descriptor_sets_res.value[i * 2], descriptor_sets_res.value[i * 2 + 1]});
+            SwapchainFrame::CreateInfo frame_info{
+                .device = info.logical_device,
+                .physical_device = info.physical_device,
+                .image = image,
+                .format = m_format.format,
+                .command_buffer = command_buffers_res.value[i],
+                .descriptor_sets =  std::vector<vk::DescriptorSet>{descriptor_sets_res.value[i * 2], descriptor_sets_res.value[i * 2 + 1]},
+                .width = (uint32_t)info.width,
+                .height = (uint32_t)info.height
+            };
+            m_frames.emplace_back(frame_info);
         }
         std::ranges::for_each(m_frames, [&info](vkl::SwapchainFrame& frame) {
 			auto res = info.populate_descriptor_sets(frame);
@@ -107,7 +116,7 @@ namespace vkl {
             return db::error("Failed to get surface capabilities");
         support.capabilities = capabilities_res.value;
 
-        if constexpr (_DEBUG) {
+        #ifdef DEBUG
             std::cout << "Swapchain can support the follow capabilities:\n";
 
             std::cout << "\t minimum image count: " << support.capabilities.minImageCount << '\n';
@@ -146,7 +155,7 @@ namespace vkl {
             string_list = vkl::log_image_usage_bits(support.capabilities.supportedUsageFlags);
             for (auto line : string_list)
                 std::cout << "\t\t" << line << '\n';
-        }
+        #endif
 
         vk::ResultValue<std::vector<vk::SurfaceFormatKHR>> suface_formats_res = physical_device.getSurfaceFormatsKHR(surface);
 
@@ -154,22 +163,22 @@ namespace vkl {
             return db::error("Failed to get surface formats");
         support.formats = suface_formats_res.value;
 
-        if constexpr (_DEBUG) {
+        #ifdef DEBUG
             for (auto supportedFormat : support.formats) {
                 std::cout << "supported pixel format: " << vk::to_string(supportedFormat.format) << '\n';
                 std::cout << "supported color space: " << vk::to_string(supportedFormat.colorSpace) << '\n';
             }
-        }
+        #endif
 
         vk::ResultValue<std::vector<vk::PresentModeKHR>> present_modes_res = physical_device.getSurfacePresentModesKHR(surface);
         if (present_modes_res.result != vk::Result::eSuccess)
             return db::error("Failed to get surface present modes");
         support.presentModes = present_modes_res.value;
-        if constexpr (_DEBUG) {
+        #ifdef DEBUG
             for (vk::PresentModeKHR presentMode : support.presentModes) {
                 //std::cout << '\t' << log_present_mode(presentMode) << '\n'; TODO
             }
-        }
+        #endif
         return support;
 
     }
@@ -203,10 +212,10 @@ namespace vkl {
         return extent;
     }
     auto Swapchain::get_frames()->std::vector<vkl::SwapchainFrame>&{
-        if constexpr (_DEBUG) {
+        #ifdef DEBUG
             if (!m_is_initialized)
                 db::break_point("swapchain is uninitialized");
-        }
+        #endif
         return m_frames;
         
     }

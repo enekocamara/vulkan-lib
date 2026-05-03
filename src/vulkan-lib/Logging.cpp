@@ -1,9 +1,7 @@
-module;
-
+#include "Logging.hpp"
 #include "vulkan-lib/Config.h"
 
-module vulkan_lib.logging;
-import debug_lib.Logger;
+#include "debug_lib/Logger.hpp"
 
 
 namespace vkl {

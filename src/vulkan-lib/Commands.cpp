@@ -1,12 +1,11 @@
-module;
 #include <vulkan-lib/Config.h>
 #include <functional>
 #include <vector>
 
-module vulkan_lib.commands;
-import debug_lib.result;
-import vulkan_lib.SwapchainFrame;
-import vulkan_lib.Swapchain;
+#include "Commands.hpp"
+#include "debug_lib/Result.hpp"
+#include "vulkan-lib/SwapchainFrame.hpp"
+#include "vulkan-lib/Swapchain.hpp"
 
 namespace vkl {
 	auto make_command_pool(vk::Device device, vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface, uint32_t queueFamilyIndex) -> db::Result<vk::CommandPool> {
@@ -44,7 +43,7 @@ namespace vkl {
 		return db::EmptyOk{};
 	}
 	
-	auto begin_single_time_command(vk::Device device, vk::CommandPool command_pool) -> std::expected<vk::CommandBuffer, db::Error> {
+	auto begin_single_time_command(vk::Device device, vk::CommandPool command_pool) -> db::Result<vk::CommandBuffer> {
 		vk::CommandBufferAllocateInfo alloc_info{};
 		alloc_info.commandPool = command_pool;
 		alloc_info.level = vk::CommandBufferLevel::ePrimary;
@@ -58,14 +57,16 @@ namespace vkl {
 		vk::CommandBufferBeginInfo begin_info{};
 		begin_info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
-		command_buffer_res.value[0].begin(begin_info);
+		if (command_buffer_res.value[0].begin(begin_info) != vk::Result::eSuccess)
+			return db::error("Failed to begin single time commnad");
 
 		return command_buffer_res.value[0];
 	}
 
 
 	auto end_single_time_command(vk::Device device, vk::CommandPool command_pool, vk::CommandBuffer command_buffer, vk::Queue queue) -> db::Result<db::EmptyOk> {
-		command_buffer.end();
+		if (command_buffer.end() !=vk::Result::eSuccess)
+			return db::error("Failed to end single time commnad");
 
 		vk::SubmitInfo submit_info{};
 		submit_info.commandBufferCount = 1;

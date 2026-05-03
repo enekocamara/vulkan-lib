@@ -1,20 +1,18 @@
-module;
-
+#pragma once
 #include "vulkan-lib/Config.h"
 
-export module vulkan_lib.framebuffer;
 
-import vulkan_lib.SwapchainFrame;
-import debug_lib.result;
+#include "vulkan-lib/SwapchainFrame.hpp"
+#include "debug_lib/result.hpp"
 
 namespace vkl{
-    export struct FramebufferInput{
+    struct FramebufferInput{
         vk::Device device;
         vk::RenderPass renderPass;
         vk::Extent2D swapchainExtent;
     };
     
-    export auto
+    auto
         make_framebuffers(FramebufferInput inputBundle, std::vector<vkl::SwapchainFrame>& frames) -> db::Result<db::EmptyOk>;
 }
 

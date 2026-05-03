@@ -1,22 +1,22 @@
-module;
+#pragma once
 
 #include "vulkan-lib/Config.h"
 #include <vector>
 #include <span>
 #include <functional>
 
-export module vulkan_lib.Swapchain;
-import debug_lib.result;
-import vulkan_lib.queue_families;
-import vulkan_lib.SwapchainFrame;
+
+#include "debug_lib/result.hpp"
+#include "vulkan-lib/QueueFamilies.hpp"
+#include "vulkan-lib/SwapchainFrame.hpp"
 
 namespace vkl{
-    export struct SwapChainSupportDetails {
+    struct SwapChainSupportDetails {
         vk::SurfaceCapabilitiesKHR capabilities;
         std::vector<vk::SurfaceFormatKHR> formats;
         std::vector<vk::PresentModeKHR> presentModes;
     };
-    export class Swapchain {
+    class Swapchain {
     public:
         struct CreateInfo {
             vk::Device logical_device;

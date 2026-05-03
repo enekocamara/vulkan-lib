@@ -1,22 +1,21 @@
-module;
+#include "Framebuffer.hpp"
 
 #include "vulkan-lib/Config.h"
 #include <expected>
 #include <vector>
-module vulkan_lib.framebuffer;
 
-import vulkan_lib.SwapchainFrame;
-import debug_lib.result;
+#include "vulkan-lib/SwapchainFrame.hpp"
+#include "debug_lib/result.hpp"
 
 
 namespace vkl {
     auto make_framebuffers(FramebufferInput inputBundle, std::vector<SwapchainFrame>& frames) -> db::Result<db::EmptyOk> {
         for (uint32_t i = 0; i < frames.size(); i++) {
             std::vector<vk::ImageView> attachments = {
-                frames[i].m_view
+                frames[i].m_view,
+                frames[i].m_depth_view
             };
             vk::FramebufferCreateInfo framebufferInfo = {};
-            framebufferInfo.flags = vk::FramebufferCreateFlags();
             framebufferInfo.renderPass = inputBundle.renderPass;
             framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
             framebufferInfo.pAttachments = attachments.data();

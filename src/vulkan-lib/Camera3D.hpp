@@ -1,16 +1,12 @@
-module;
-
+#pragma once
 #include "vulkan-lib/Config.h"
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
 
-export module vulkan_lib.camera3D;
-
-
 namespace vkInit {
 
     namespace player {
-        export enum Movement {
+        enum Movement {
             Still = 0,
             Forward = 1,
             Backward = 2,
@@ -23,7 +19,7 @@ namespace vkInit {
         constexpr float mov_sp_vertical = 0.2f; // m*s-1
     } // namespace player
 
-    export struct Camera {
+    struct Camera {
 
         glm::vec3 eye;
         glm::vec3 center;

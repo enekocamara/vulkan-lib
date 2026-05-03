@@ -1,12 +1,12 @@
-module;
+#pragma once
+
 #include "Config.h"
-export module vulkan_lib.vertexManager;
 
-import vulkan_lib.scene;
-import vulkan_lib.memory;
-import debug_lib.result;
+#include "vulkan-lib/scene.hpp"
+#include "vulkan-lib/memory.hpp"
+#include "debug_lib/result.hpp"
 
-export class VertexManager{
+class VertexManager{
     public:
         VertexManager();
         ~VertexManager();
@@ -14,10 +14,7 @@ export class VertexManager{
         auto finalize(vk::Device device, vk::PhysicalDevice physicalDevice, vk::Queue transferQueue, vk::CommandBuffer cmdBuffer) noexcept -> db::Result<db::EmptyOk>;
 
         vkl::Buffer m_vertex_buffer;
-        std::array<uint32_t, static_cast<size_t>(MeshType::NUM)> m_offsets;
-        std::array<uint32_t, static_cast<size_t>(MeshType::NUM)> m_sizes;
-    private:
-        uint32_t m_offset;
-        vk::Device m_device;
         std::vector<float> m_lump;
+    private:
+        vk::Device m_device;
 };

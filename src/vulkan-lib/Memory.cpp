@@ -1,9 +1,6 @@
-module;
-
+#include "Memory.hpp"
 #include "vulkan-lib/Config.h"
-
-module vulkan_lib.memory;
-import debug_lib.result;
+#include "debug_lib/result.hpp"
 
 namespace vkl {
     auto find_memory_type_index(vk::PhysicalDevice physicalDevice, uint32_t supportedMemoryIndices, vk::MemoryPropertyFlags requestedProperties)noexcept -> db::Result<uint32_t> {
@@ -25,6 +22,7 @@ namespace vkl {
         vk::MemoryRequirements memoryRequirements;
         input.device.getBufferMemoryRequirements(buffer.buffer, &memoryRequirements);
         vk::MemoryAllocateInfo allocInfo = {};
+        assert(memoryRequirements.size != 0);
         allocInfo.allocationSize = memoryRequirements.size;
         auto memory_type_index_res = find_memory_type_index(input.physical_device, memoryRequirements.memoryTypeBits,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -51,6 +49,7 @@ namespace vkl {
     }
 
     auto create_buffer(BufferInput& bufferInput) noexcept -> db::Result<Buffer> {
+        assert(bufferInput.size != 0);
         vk::BufferCreateInfo bufferInfo = {};
         bufferInfo.flags = vk::BufferCreateFlags();
         bufferInfo.size = bufferInput.size;

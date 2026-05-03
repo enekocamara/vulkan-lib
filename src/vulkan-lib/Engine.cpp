@@ -1,8 +1,5 @@
-module;
-
 #include "vulkan-lib/Config.h"
 #include <GLFW/glfw3.h>
-module vulkan_lib.engine;
 
 /*
 import <glm/gtc/matrix_transform.hpp>;

@@ -1,63 +1,43 @@
-module;
+#include "Image.hpp"
 #include <vulkan-lib/Config.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <functional>
-module vulkan_lib.Image;
 
-import vulkan_lib.memory;
-import debug_lib.result;
-import vulkan_lib.commands;
+#include "vulkan-lib/memory.hpp"
+#include "debug_lib/result.hpp"
+#include "vulkan-lib/commands.hpp"
 
 
 namespace vkl {
+
 	Image::Image(const Image::CreateInfo& info) :
+		m_dimmensions(info.dimmensions),
 		m_device(info.device),
 		m_physical_device(info.physical_device),
+		m_format(info.format),
 		m_descriptor_layout(info.descriptor_layout),
 		m_descriptor_pool(info.descriptor_pool),
 		m_command_buffer(info.command_buffer),
 		m_queue(info.queue)
 	{
-		m_pixels = stbi_load(
-			info.file_path.string().c_str(),
-			&m_dimmensions.x,
-			&m_dimmensions.y,
-			&m_channels,
-			STBI_rgb_alpha
-		);
-
-		if (!m_pixels)
-			throw std::runtime_error("Failed to load image");
-
-		BufferInput buffer_input{
-			.device = m_device,
-			.physical_device = m_physical_device,
-			.size = static_cast<std::size_t>(m_dimmensions.x * m_dimmensions.y * 4),
-			.usage = vk::BufferUsageFlagBits::eTransferSrc,
-			.properties = vk::MemoryPropertyFlagBits::eHostVisible |
-				vk::MemoryPropertyFlagBits::eHostCoherent
-		};
-		auto buffer_res = create_buffer(buffer_input);
-		if (!buffer_res)
-			throw std::runtime_error("Failed to create buffer");
-
-		auto mem_res = m_device.mapMemory(buffer_res.value().bufferMemory, 0, m_dimmensions.x * m_dimmensions.y * 4);
-		if (mem_res.result != vk::Result::eSuccess)
-			throw std::runtime_error("Failed to map memory");
-		memcpy(mem_res.value, m_pixels, m_dimmensions.x * m_dimmensions.y * 4);
-		m_device.unmapMemory(buffer_res.value().bufferMemory);
-
+		auto usage = info.usage;
+		auto src_stage = vk::PipelineStageFlagBits::eTopOfPipe;
+		if (info.source.has_value())
+		{
+			usage |= vk::ImageUsageFlagBits::eTransferDst;
+			src_stage = vk::PipelineStageFlagBits::eTransfer;
+		}
 		vk::ImageCreateInfo image_info{
 			{},
 			vk::ImageType::e2D,
-			vk::Format::eR8G8B8A8Srgb,
+			info.format,
 			vk::Extent3D{(uint32_t)m_dimmensions.x, (uint32_t)m_dimmensions.y, 1},
 			1,//mipmap levels
 			1,//array layers
 			vk::SampleCountFlagBits::e1,
 			vk::ImageTiling::eOptimal,
-			vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+			usage,
 			vk::SharingMode::eExclusive,
 			0, //queue family index count
 			nullptr, //pqueue family indices
@@ -82,46 +62,92 @@ namespace vkl {
 			throw std::runtime_error("Failed to find memory type index");
 		allocInfo.memoryTypeIndex = memory_type_index_res.value();
 
-		m_device.allocateMemory(&allocInfo, nullptr, &m_image_memory);
-		m_device.bindImageMemory(m_image, m_image_memory, 0);
+		if (m_device.allocateMemory(&allocInfo, nullptr, &m_image_memory ) != vk::Result::eSuccess)
+			throw std::runtime_error("Failed to allocate memory");
 
-		auto transition_img_1 = transition_image_layout(vk::ImageLayout::eTransferDstOptimal, info.command_pool, vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite);
-		if (!transition_img_1)
-			throw std::runtime_error("Failed to transition image layout to eTransferDstOptimal");
+		if (m_device.bindImageMemory(m_image, m_image_memory, 0)!= vk::Result::eSuccess)
+			throw std::runtime_error("Failed to bind image memory");
 
-		auto stc_res = single_time_command(m_device, info.command_pool, info.queue,
-			[&](vk::CommandBuffer cmd) -> db::Result<db::EmptyOk>
+		if (info.source.has_value())
+		{
+			assert(info.format == vk::Format::eR8G8B8A8Srgb);
+			void *data;
+			int channels;
+			int width;
+			int height;
+			if (std::holds_alternative<fs::path>(info.source.value().source))
 			{
-				vk::BufferImageCopy region{};
+				auto path = std::get<fs::path>(info.source.value().source);
+				void *pixels = stbi_load(
+					path.string().c_str(),
+					&width,
+					&height,
+					&channels,
+					STBI_rgb_alpha);
+				if (!pixels)
+					throw std::runtime_error("Failed to load image");
+				assert(width == m_dimmensions.x && height == m_dimmensions.y);
+				data = pixels;
+			}
+			else
+			{
+				data = std::get<std::pair<size_t, void *>>(info.source.value().source).second;
+			}
 
-				region.bufferOffset = 0;
-				region.bufferRowLength = 0;      // tightly packed
-				region.bufferImageHeight = 0;    // tightly packed
+			BufferInput buffer_input{
+				.device = m_device,
+				.physical_device = m_physical_device,
+				.size = static_cast<std::size_t>(m_dimmensions.x * m_dimmensions.y * 4),
+				.usage = vk::BufferUsageFlagBits::eTransferSrc,
+				.properties = vk::MemoryPropertyFlagBits::eHostVisible |
+							  vk::MemoryPropertyFlagBits::eHostCoherent};
+			auto buffer_res = create_buffer(buffer_input);
+			if (!buffer_res)
+				throw std::runtime_error("Failed to create buffer");
 
-				region.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-				region.imageSubresource.mipLevel = 0;
-				region.imageSubresource.baseArrayLayer = 0;
-				region.imageSubresource.layerCount = 1;
+			auto mem_res = m_device.mapMemory(buffer_res.value().bufferMemory, 0, m_dimmensions.x * m_dimmensions.y * 4);
+			if (mem_res.result != vk::Result::eSuccess)
+				throw std::runtime_error("Failed to map memory");
+			memcpy(mem_res.value, data, m_dimmensions.x * m_dimmensions.y * 4);
+			m_device.unmapMemory(buffer_res.value().bufferMemory);
 
-				region.imageOffset = vk::Offset3D{ 0, 0, 0 };
-				region.imageExtent = vk::Extent3D{
-					(uint32_t)m_dimmensions.x,
-					(uint32_t)m_dimmensions.y,
-					1
-				};
-				cmd.copyBufferToImage(
+			auto transition_img_1 = transition_image_layout(vk::ImageLayout::eTransferDstOptimal, info.command_pool, vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite);
+			if (!transition_img_1)
+				throw std::runtime_error("Failed to transition image layout to eTransferDstOptimal");
+
+			auto stc_res = single_time_command(m_device, info.command_pool, info.queue,
+			   [&](vk::CommandBuffer cmd) -> db::Result<db::EmptyOk>{
+					vk::BufferImageCopy region{};
+
+					region.bufferOffset = 0;
+					region.bufferRowLength = 0;	 // tightly packed
+					region.bufferImageHeight = 0; // tightly packed
+
+				   	region.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+				   	region.imageSubresource.mipLevel = 0;
+  	  	 			region.imageSubresource.baseArrayLayer = 0;
+	  		  		region.imageSubresource.layerCount = 1;
+
+				    region.imageOffset = vk::Offset3D{0, 0, 0};
+					region.imageExtent = vk::Extent3D{
+						(uint32_t)m_dimmensions.x,
+						(uint32_t)m_dimmensions.y,
+					 	1};
+					db::Logger::core_info("Before copy");
+					cmd.copyBufferToImage(
 					buffer_res.value().buffer,
 					m_image,
 					vk::ImageLayout::eTransferDstOptimal,
-					1,
-					&region
-				);
-				return db::EmptyOk{};
-			});
-		if (!stc_res)
-			throw std::runtime_error("Failed to execute single time command");
-
-		auto transition_img_2 = transition_image_layout(vk::ImageLayout::eShaderReadOnlyOptimal, info.command_pool, vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead);
+	  				   1,
+	  				   &region);
+					db::Logger::core_info("After copy");
+	    			return db::EmptyOk{};
+				}
+			);
+			if (!stc_res)
+				throw std::runtime_error("Failed to execute single time command");
+		}
+		auto transition_img_2 = transition_image_layout(info.layout, info.command_pool, src_stage, info.pipeline_stage, info.access);
 		if (!transition_img_2)
 			throw std::runtime_error("Failed to transition image layout to eShaderReadOnlyOptimal");
 
@@ -159,7 +185,7 @@ namespace vkl {
 
 		view_info.image = m_image;
 		view_info.viewType = vk::ImageViewType::e2D;
-		view_info.format = vk::Format::eR8G8B8A8Srgb;
+		view_info.format = info.format;
 
 		view_info.components = vk::ComponentMapping{
 			vk::ComponentSwizzle::eIdentity,

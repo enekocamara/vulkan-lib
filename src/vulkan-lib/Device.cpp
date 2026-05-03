@@ -1,12 +1,12 @@
-module;
+#include "Device.hpp"
 
 #include <vulkan-lib/Config.h>
 
-module vulkan_lib.device;
+#include "debug_lib/Result.hpp"
+#include "vulkan-lib/QueueFamilies.hpp"
+#include "debug_lib/Logger.hpp"
+#include <set>
 
-import debug_lib.result;
-import vulkan_lib.queue_families;
-import debug_lib.Logger;
 namespace vkl {
 
     auto choose_physical_device(vk::Instance& instance) noexcept -> db::Result<vk::PhysicalDevice> {
@@ -32,11 +32,11 @@ namespace vkl {
 
     auto create_device(vk::PhysicalDevice physical_device, vk::SurfaceKHR surface) noexcept -> db::Result<vk::Device> {
         vkl::QueueFamilyIndices indices = vkl::find_queue_families(physical_device, surface);
-        std::vector<uint32_t> unique_indices;
-        unique_indices.push_back(indices.presentFamily.value());
-        if (indices.presentFamily.value() != indices.graphicsFamily.value())
-            unique_indices.push_back(indices.graphicsFamily.value());
-        unique_indices.push_back(indices.transferFamily.value());
+        std::set<uint32_t> unique_indices;
+        unique_indices.insert(indices.present_family.value());
+        unique_indices.insert(indices.graphics_family.value());
+        unique_indices.insert(indices.transfer_family.value());
+        unique_indices.insert(indices.compute_family.value());
         float queuePriority = 1.f;
         std::vector<vk::DeviceQueueCreateInfo> queueCreateInfo;
         for (uint32_t queueFamilyIndex : unique_indices){
@@ -54,9 +54,9 @@ namespace vkl {
         features.samplerAnisotropy = true;
 
         std::vector<const char*>layers;
-        if constexpr (_DEBUG)
+        #ifdef DEBUG
             layers.push_back("VK_LAYER_KHRONOS_validation");
-
+        #endif
         vk::DeviceCreateInfo createInfo(
             vk::DeviceCreateFlags(),
             static_cast<uint32_t>(queueCreateInfo.size()), queueCreateInfo.data(),

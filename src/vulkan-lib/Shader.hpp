@@ -1,14 +1,11 @@
-module;
+#pragma once
 
 #include "vulkan-lib/Config.h"
-export module vulkan_lib.shader;
-
-
-import debug_lib.result;
+#include "debug_lib/result.hpp"
 
 namespace vkl{
-    export [[nodiscard]] inline auto
+    [[nodiscard]] inline auto
         read_file(std::string filename) noexcept -> db::Result<std::vector<char>>;
-    export [[nodiscard]] inline auto
+    [[nodiscard]] inline auto
         create_module(std::string filename, vk::Device device) noexcept -> db::Result<vk::ShaderModule>;
 }

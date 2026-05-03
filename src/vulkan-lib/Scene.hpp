@@ -1,16 +1,15 @@
-module;
+#pragma once
 #include <glm/glm.hpp>
 #include <vector>
-export module vulkan_lib.scene;
 
-export enum class MeshType{
+enum class MeshType{
     TRIANGLE_R,
     TRIANGLE_G,
     TRIANGLE_B,
     NUM,
 };
 
-export class Scene{
+class Scene{
     public:
         Scene();
         std::vector<glm::vec3>triangleRPositions;

@@ -1,15 +1,13 @@
-module;
-
+#pragma once
 #include "vulkan-lib/Config.h"
 #include <cstdint>
-export module vulkan_lib.memory;
 
-import debug_lib.result;
+#include "debug_lib/result.hpp"
 
 
 namespace vkl {
 
-    export struct BufferInput {
+    struct BufferInput {
         vk::Device device;
         vk::PhysicalDevice physical_device;
         size_t size;
@@ -18,7 +16,7 @@ namespace vkl {
     };
 
 
-    export struct Buffer {
+    struct Buffer {
         enum State {
             Init,
             BufferCreated,
@@ -40,7 +38,7 @@ namespace vkl {
         }
     };
 
-    export struct CopyBufferInput {
+    struct CopyBufferInput {
         vk::Device device;
         vk::Queue queue;
         vk::CommandBuffer cmdBuffer;
@@ -49,19 +47,19 @@ namespace vkl {
         vk::BufferCopy region;
     };
 
-    export auto
+    auto
         find_memory_type_index(vk::PhysicalDevice physicalDevice, uint32_t supportedMemoryIndices, vk::MemoryPropertyFlags requestedProperties)noexcept -> db::Result<uint32_t>;
 
-    export auto
+    auto
         allocate_buffer_memory(Buffer& buffer, const BufferInput& input) noexcept -> db::Result<db::EmptyOk>;
 
-    export auto
+    auto
         create_buffer(BufferInput& bufferInput) noexcept -> db::Result<Buffer>;
 
-    export auto
+    auto
         mapBuffer(vk::Device device, Buffer& buffer, void* src, uint32_t offset, uint32_t size) -> db::Result<db::EmptyOk>;
 
 
-    export auto
+    auto
         copyBuffer(CopyBufferInput input) -> db::Result<db::EmptyOk>;
 }
