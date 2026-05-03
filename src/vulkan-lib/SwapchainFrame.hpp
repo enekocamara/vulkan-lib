@@ -1,14 +1,10 @@
-module;
+#pragma once
 
 #include "vulkan-lib/Config.h"
+#include <glm/glm.hpp>
 
-export module vulkan_lib.SwapchainFrame;
-
-import vulkan_lib.memory;
-import <glm/glm.hpp>;
-import <expected>;
-import debug_lib.result;
-import debug_lib.Logger;
+#include "vulkan-lib/memory.hpp"
+#include "debug_lib/result.hpp"
 
 namespace vkl {
 
@@ -18,11 +14,21 @@ namespace vkl {
         glm::mat4 viewProjection;
     };
 
-    export class SwapchainFrame {
+    class SwapchainFrame {
     public:
+        struct CreateInfo
+        {
+            vk::Device device;
+            vk::PhysicalDevice physical_device;
+            vk::Image image;
+            vk::Format format;
+            vk::CommandBuffer command_buffer;
+            std::vector<vk::DescriptorSet> descriptor_sets;
+            uint32_t width;
+            uint32_t height;
+        };
         SwapchainFrame() = delete;
-        SwapchainFrame(vk::Device device, vk::PhysicalDevice physical_device, vk::Image image, vk::Format format, vk::CommandBuffer command_buffer);
-
+        SwapchainFrame(const SwapchainFrame::CreateInfo& info);
 
         auto get_command_buffer() -> vk::CommandBuffer { return m_command_buffer; }
 
@@ -33,6 +39,9 @@ namespace vkl {
         vk::Image m_image;
         vk::ImageView m_view;
         vk::Framebuffer m_framebuffer;
+
+        vk::Image m_depth_image;
+        vk::ImageView m_depth_view;
         vk::CommandBuffer m_command_buffer;
 
         vk::DescriptorBufferInfo m_uniform_buffer_descriptor;
@@ -44,7 +53,7 @@ namespace vkl {
         //sync
     };
 /*
-    export struct SwapchainFrame2{
+    struct SwapchainFrame2{
         //sync
         vk::Semaphore imageAvailable, renderFinished;
         vk::Fence inFlightFence;

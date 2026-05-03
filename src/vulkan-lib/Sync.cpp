@@ -1,7 +1,6 @@
-module;
+#include "Sync.hpp"
 #include <vulkan-lib/Config.h>
-module vulkan_lib.sync;
-
+#include "debug_lib/result.hpp"
 
 namespace vkl {
 

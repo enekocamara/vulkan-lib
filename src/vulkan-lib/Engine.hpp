@@ -1,9 +1,7 @@
 ///This file contains the declarations of the engine class
-module;
+#pragma once
 
 #include "vulkan-lib/Config.h"
-
-export module vulkan_lib.engine;
 
 /*
 import <GLFW/glfw3.h>;

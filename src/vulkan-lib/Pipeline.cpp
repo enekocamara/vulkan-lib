@@ -1,11 +1,10 @@
-module;
-
+#include "Pipeline.hpp"
 #include <vulkan-lib/Config.h>
 
-module vulkan_lib.pipeline;
 
-import debug_lib.result;
-import vulkan_lib.mesh;
+#include "debug_lib/result.hpp"
+#include "vulkan-lib/mesh.hpp"
+#include "debug_lib/Logger.hpp"
 
 namespace vkl {
     auto  make_pipeline_layout(vk::Device device, const std::vector<vk::DescriptorSetLayout>& descriptor_set_layouts) noexcept -> db::Result<vk::PipelineLayout> {
@@ -28,31 +27,52 @@ namespace vkl {
         return layoutR.value;
     }
     auto make_render_pass(vk::Device device, vk::Format swapchainImageFormat) noexcept -> db::Result<vk::RenderPass> {
-        vk::AttachmentDescription colorAttachment = {};
-        colorAttachment.flags = vk::AttachmentDescriptionFlags();
-        colorAttachment.format = swapchainImageFormat;
-        colorAttachment.samples = vk::SampleCountFlagBits::e1;
-        colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-        colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-        colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-        colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-        colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
-        colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
+        //color
+        vk::AttachmentDescription color_attachment = {};
+        color_attachment.flags = vk::AttachmentDescriptionFlags();
+        color_attachment.format = swapchainImageFormat;
+        color_attachment.samples = vk::SampleCountFlagBits::e1;
+        color_attachment.loadOp = vk::AttachmentLoadOp::eClear;
+        color_attachment.storeOp = vk::AttachmentStoreOp::eStore;
+        color_attachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+        color_attachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+        color_attachment.initialLayout = vk::ImageLayout::eUndefined;
+        color_attachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
 
-        vk::AttachmentReference colorAttachmentRef = {};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
+        vk::AttachmentReference color_attachment_ref = {};
+        color_attachment_ref.attachment = 0;
+        color_attachment_ref.layout = vk::ImageLayout::eColorAttachmentOptimal;
 
+        //depth
+        vk::AttachmentDescription depth_attachment{};
+        depth_attachment.format = vk::Format::eD32Sfloat;
+        depth_attachment.samples = vk::SampleCountFlagBits::e1;
+        depth_attachment.loadOp = vk::AttachmentLoadOp::eClear;
+        depth_attachment.storeOp = vk::AttachmentStoreOp::eDontCare;
+        depth_attachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+        depth_attachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+        depth_attachment.initialLayout = vk::ImageLayout::eUndefined;
+        depth_attachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+        vk::AttachmentReference depth_attachment_ref{};
+        depth_attachment_ref.attachment = 1;
+        depth_attachment_ref.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+
+        std::array<vk::AttachmentDescription, 2> attachments = {
+            color_attachment,   // index 0
+            depth_attachment    // index 1
+        };
         vk::SubpassDescription subpass = {};
-        subpass.flags = vk::SubpassDescriptionFlags();
         subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
         subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
+        subpass.pColorAttachments = &color_attachment_ref;
+        subpass.pDepthStencilAttachment = &depth_attachment_ref;
 
         vk::RenderPassCreateInfo renderpassInfo = {};
         renderpassInfo.flags = vk::RenderPassCreateFlags();
-        renderpassInfo.attachmentCount = 1;
-        renderpassInfo.pAttachments = &colorAttachment;
+        renderpassInfo.attachmentCount = attachments.size();
+        renderpassInfo.pAttachments = attachments.data();
         renderpassInfo.subpassCount = 1;
         renderpassInfo.pSubpasses = &subpass;
 
@@ -65,9 +85,9 @@ namespace vkl {
 
     auto fillVertexInputStateCreateInfo() noexcept -> vk::PipelineVertexInputStateCreateInfo {
         vk::VertexInputBindingDescription bindingDescription =
-            vkMesh::getPosColorBindingDescription();
+            vkl::getBindingDescription(vkl::MeshType::eQuadTex);
         std::vector<vk::VertexInputAttributeDescription> attributeDescription =
-            vkMesh::getPosColorAttributeDescriptions();
+            vkl::getAttributeDescription(vkl::MeshType::eQuadTex);
 
         vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {};
         vertexInputInfo.flags = vk::PipelineVertexInputStateCreateFlags();
@@ -133,17 +153,24 @@ namespace vkl {
 
     auto make_graphics_pipeline(GraphicsPipelineBundle& specifications) noexcept -> db::Result<GraphicsPipelineOutBundle> {
         // main pipeline
+        vk::PipelineDepthStencilStateCreateInfo depth_stencil{};
+        depth_stencil.depthTestEnable = VK_TRUE;
+        depth_stencil.depthWriteEnable = VK_TRUE;
+        depth_stencil.depthCompareOp = vk::CompareOp::eLess;
+        depth_stencil.depthBoundsTestEnable = VK_FALSE;
+        depth_stencil.stencilTestEnable = VK_FALSE;
+
         vk::GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-        pipelineCreateInfo.flags = vk::PipelineCreateFlags();
+        pipelineCreateInfo.pDepthStencilState = &depth_stencil;
 
         // a list of all the shader stages
         std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
 
         // VERTEX shader input
         vk::VertexInputBindingDescription bindingDescription =
-            vkMesh::getPosColorBindingDescription();
+            vkl::getBindingDescription(vkl::MeshType::eCubeTex);
         std::vector<vk::VertexInputAttributeDescription> attributeDescription =
-            vkMesh::getPosColorAttributeDescriptions();
+            vkl::getAttributeDescription(vkl::MeshType::eCubeTex);
 
         vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {};
         vertexInputInfo.flags = vk::PipelineVertexInputStateCreateFlags();

@@ -1,26 +1,36 @@
-module;
-
+#include "QueueFamilies.hpp"
 #include <vulkan-lib/Config.h>
+#include <cstdint>
+#include <vector>
+#include <format>
 
-module vulkan_lib.queue_families;
+#include "debug_lib/Logger.hpp"
 
 namespace vkl {
 	bool QueueFamilyIndices::is_complete() {
-		return graphicsFamily.has_value() && presentFamily.has_value() && transferFamily.has_value();
+		return graphics_family.has_value() && present_family.has_value() && transfer_family.has_value() && compute_family.has_value();
 	}
     
-    auto find_queue_families(vk::PhysicalDevice &device, vk::SurfaceKHR surface) noexcept -> QueueFamilyIndices {
+    auto find_queue_families(vk::PhysicalDevice device, vk::SurfaceKHR surface) noexcept -> QueueFamilyIndices {
         QueueFamilyIndices indices;
         
-        std::vector<vk::QueueFamilyProperties> queueFamilies;
-        queueFamilies = device.getQueueFamilyProperties();
+        std::vector<vk::QueueFamilyProperties> queue_families;
+        queue_families = device.getQueueFamilyProperties();
        
-        db::Logger::core_trace(std::format("Physical device supports {} queue families", queueFamilies.size()));
+        db::Logger::core_trace(std::format("Physical device supports {} queue families", queue_families.size()));
         uint32_t i = 0;
-        indices.transferFamily = 1;
-        for (auto& queueFamily : queueFamilies){
-            if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics){
-                indices.graphicsFamily = i;
+        //indices.transfer_family = 1;
+        for (auto& queue_family : queue_families){
+            if (queue_family.queueFlags & vk::QueueFlagBits::eCompute){
+                indices.compute_family = i;
+                db::Logger::core_trace(std::format("\tFamily queue index {} supports compute", i));
+            }
+            if (queue_family.queueFlags & vk::QueueFlagBits::eTransfer){
+                indices.transfer_family = i;
+                db::Logger::core_trace(std::format("\tFamily queue index {} supports transfer", i));
+            }
+            if (queue_family.queueFlags & vk::QueueFlagBits::eGraphics){
+                indices.graphics_family = i;
                 db::Logger::core_trace(std::format("\tFamily queue index {} supports graphics", i));
             }
             //bool support;
@@ -29,7 +39,7 @@ namespace vkl {
             if (result.result != vk::Result::eSuccess)
                 continue;
             if (result.value){
-                indices.presentFamily = i;
+                indices.present_family = i;
                 db::Logger::core_trace(std::format("\tFamily queue index {} supports presenting", i));
             }
             if (indices.is_complete())

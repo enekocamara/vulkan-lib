@@ -1,78 +1,30 @@
-module;
-
+#include "Memory.hpp"
 #include "vulkan-lib/Config.h"
+#include "debug_lib/result.hpp"
 
-export module vulkan_lib.memory;
-
-import debug_lib.result;
-import <expected>;
-import <iostream>;
-
-export namespace vkl{
-
-    export struct BufferInput{
-        vk::Device device;
-        vk::PhysicalDevice physical_device;
-        size_t size;
-        vk::BufferUsageFlags usage;
-        vk::MemoryPropertyFlags properties;
-    };
-
-
-    export struct Buffer{
-        enum State{
-            Init,
-            BufferCreated,
-            MemAllocated,
-            MemBinded,
-            Mapped,
-            Empty,
-            Err,
-        };
-        State state;
-        
-        vk::Buffer buffer;
-        vk::DeviceMemory bufferMemory;
-
-        static Buffer init(){
-            Buffer buffer = {};
-            buffer.state = State::Init;
-            return {};
-        }
-    };
-    
-    export struct CopyBufferInput{
-        vk::Device device;
-        vk::Queue queue;
-        vk::CommandBuffer cmdBuffer;
-        vk::Buffer dstBuffer;
-        vk::Buffer srcBuffer;
-        vk::BufferCopy region;
-    };
-
-    export [[nodiscard]] auto
-    findMemoryTypeIndex(vk::PhysicalDevice physicalDevice,  uint32_t supportedMemoryIndices, vk::MemoryPropertyFlags requestedProperties)noexcept -> db::Result<uint32_t>{
+namespace vkl {
+    auto find_memory_type_index(vk::PhysicalDevice physicalDevice, uint32_t supportedMemoryIndices, vk::MemoryPropertyFlags requestedProperties)noexcept -> db::Result<uint32_t> {
         vk::PhysicalDeviceMemoryProperties memoryProperties;
         physicalDevice.getMemoryProperties(&memoryProperties);
 
-        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++){
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
             bool supported = (supportedMemoryIndices & (1 << i)) != 0;
-            bool sufficient{(memoryProperties.memoryTypes[i].propertyFlags & requestedProperties) == requestedProperties};
+            bool sufficient{ (memoryProperties.memoryTypes[i].propertyFlags & requestedProperties) == requestedProperties };
             if (supported && sufficient)
                 return i;
         }
         return db::error("Failed to get memory type index");
     }
-    
-    export [[nodiscard]] inline auto
-    allocate_buffer_memory( Buffer&buffer, const BufferInput& input) noexcept -> db::Result<db::EmptyOk> {
-        assert(buffer.state == Buffer::State::BufferCreated);
+
+    auto allocate_buffer_memory( Buffer&buffer, const BufferInput& input) noexcept -> db::Result<db::EmptyOk> {
+        //assert(buffer.state == Buffer::State::BufferCreated);
 
         vk::MemoryRequirements memoryRequirements;
         input.device.getBufferMemoryRequirements(buffer.buffer, &memoryRequirements);
         vk::MemoryAllocateInfo allocInfo = {};
+        assert(memoryRequirements.size != 0);
         allocInfo.allocationSize = memoryRequirements.size;
-        auto memory_type_index_res = findMemoryTypeIndex(input.physical_device, memoryRequirements.memoryTypeBits,
+        auto memory_type_index_res = find_memory_type_index(input.physical_device, memoryRequirements.memoryTypeBits,
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
         if (!memory_type_index_res)
             return db::error("Failed to find memory type index", std::move(memory_type_index_res.error()));
@@ -96,8 +48,8 @@ export namespace vkl{
         return db::EmptyOk{};
     }
 
-    export [[nodiscard]] inline auto
-    create_buffer(BufferInput& bufferInput) noexcept -> db::Result<Buffer> {
+    auto create_buffer(BufferInput& bufferInput) noexcept -> db::Result<Buffer> {
+        assert(bufferInput.size != 0);
         vk::BufferCreateInfo bufferInfo = {};
         bufferInfo.flags = vk::BufferCreateFlags();
         bufferInfo.size = bufferInput.size;
@@ -116,9 +68,8 @@ export namespace vkl{
         return buffer;
     }
 
-    export [[nodiscard]] inline auto
-    mapBuffer(vk::Device device, Buffer& buffer, void *src, uint32_t offset, uint32_t size) -> db::Result<db::EmptyOk> {
-        assert(buffer.state == Buffer::MemAllocated || buffer.state == Buffer::MemBinded);
+    auto mapBuffer(vk::Device device, Buffer& buffer, void *src, uint32_t offset, uint32_t size) -> db::Result<db::EmptyOk> {
+        //assert(buffer.state == Buffer::MemAllocated || buffer.state == Buffer::MemBinded);
         vk::ResultValue<void *> memoryLocationR = device.mapMemory(buffer.bufferMemory, offset, size);
         if (memoryLocationR.result != vk::Result::eSuccess)
             db::error("Failed to map memory");
@@ -127,9 +78,7 @@ export namespace vkl{
         return db::EmptyOk{};
     }
 
-
-    export [[nodiscard]] inline auto
-    copyBuffer(CopyBufferInput input) -> db::Result<db::EmptyOk> {
+    auto copyBuffer(CopyBufferInput input) -> db::Result<db::EmptyOk> {
         if (input.cmdBuffer.reset() != vk::Result::eSuccess){
             return db::error("Failed to reset command buffer");
         }
